@@ -229,11 +229,33 @@ dsh-computer-use/
 │   ├── index.js          # 插件主体：两个工具 + 提示词段落
 │   └── loader.cjs        # 安装路径感知的模块解析（穿透 asar）
 ├── src/
-│   ├── win32.cjs         # koffi 绑定 user32/gdi32
+│   ├── win32.cjs         # koffi 绑定 user32/gdi32/dwmapi
 │   ├── capture.cjs       # GDI 截屏
 │   └── png.cjs           # 自包含 PNG 编码器 + 标尺 + 象限
 └── scripts/
-    ├── test-native.cjs
-    ├── test-plugin.cjs
-    └── verify-deployed.cjs
+    ├── test-native.cjs        # 原生层 20 项
+    ├── test-plugin.cjs        # 插件层 38 项
+    ├── verify-deployed.cjs    # 部署副本 vs 源码逐字节比对 + 实载
+    └── check-patch-refs.cjs   # preset 引用的包名是否都存在
 ```
+
+## 从沙箱内推送代码时的两个坑
+
+DSH 的沙箱会隔离 Windows 的 TLS 凭据存储，因此在沙箱里执行 `git push` 会遇到两个**看似网络故障、实为环境限制**的报错：
+
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| `curl https://github.com` 返回 `000` | schannel 拿不到凭据 | 用 OpenSSL 后端 |
+| `schannel: AcquireCredentialsHandle failed: SEC_E_NO_CREDENTIALS` | 同上 | 同上 |
+
+但**网络本身没有被封**——`http://` 明文请求正常，到 `github.com:443` 的 TCP 连接也通。只有 Windows 原生 TLS（schannel）的凭据存储不可达。Git for Windows 自带 OpenSSL 与 CA 证书包，绕开即可：
+
+```powershell
+git -c http.sslBackend=openssl push -u origin main
+```
+
+诊断时注意区分"连不上"和"仓库不存在"：
+- `Failed to connect` / `SEC_E_NO_CREDENTIALS` → TLS 后端问题
+- `remote: Repository not found.` → TLS 已通，只是 GitHub 上还没建仓库（认证失败会报 `authentication failed`，不是这句）
+
+在**普通终端**里（非沙箱）通常不需要这个参数，schannel 可正常工作。
