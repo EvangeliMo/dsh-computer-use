@@ -1,0 +1,239 @@
+# dsh-computer-use — 电脑操作模式
+
+在 DeepSeek Harness 中新增第五个模式「电脑操作模式」：保留标准模式的全部能力，并加上**屏幕截图**与**鼠标键盘控制**，用于操作没有 agent 接口的软件、以及读取只存在于屏幕上的信息。
+
+## 这个模式提供什么
+
+两个工具：
+
+| 工具 | 用途 |
+|---|---|
+| `computer` | 单步操作：`screenshot` / `screen_info` / `windows` / `focus_window` / `click` / `double_click` / `right_click` / `middle_click` / `move` / `drag` / `scroll` / `type` / `shortcut` / `key` / `cursor` / `sleep` |
+| `computer_batch` | 一次调用执行多步序列（可带 `sleep` 等界面稳定），用于「点击 → 输入 → 回车」这类机械连招 |
+
+外加一段系统提示词段落，注册在 Harness 自己预留的 `TOOL_COMPUTER_USE` 插槽（order 3000），负责说明工作流与安全边界。
+
+## 为低分辨率视觉输入设计的观察流程
+
+这是本模式的核心设计，针对图像输入分辨率有限的模型：
+
+**第一步 — 全局概览。** 全屏截图会降采样到 1152 像素（1920×1080 → `scale: 0.6`），并在图上**烧录坐标标尺**（每 200 屏幕像素一条网格线，每 400 像素带数字标签）和 **1–4 象限编号**。模型不需要做心算，坐标直接写在图里。
+
+**第二步 — 局部原生分辨率。** 用 `region` 参数重新截取一个小区域，只要最长边不超过 `nativeMaxDimension`（默认 1400），就以 `scale: 1` 原生分辨率返回——此时图像像素就是屏幕像素，小字完全可读。
+
+**`tiles` 参数**可以把一个较大区域一次切成最多 9 块原生分辨率图，省掉多次往返。
+
+坐标换算规则只有一个：`屏幕坐标 = region 原点 + 图像坐标 / scale`。结果里 `region`、`scale`、`size` 每次都明确回报。
+
+## 关键实现约束（改动前请先读）
+
+1. **坐标零换算。** 实测插件宿主进程 `DPI awareness = 2`（per-monitor）、`dpi = 120`，且 `GetSystemMetrics` == `DESKTOPHORZRES` == 1920。截图、`GetCursorPos`、`SetCursorPos` 天然处于**同一个物理像素空间**，因此本插件从不做坐标缩放。唯一的缩放发生在交给模型的图像上，且该系数明确回报。**不要**引入基于 DPI 的坐标换算——那会引入本不存在的错误。
+
+2. **必须是 CommonJS。** `koffi` 与 `@deepseek-ai/dsh-tools` 都在安装包的 `app.asar` 内。只有 CommonJS 的 `require` 会经过 Electron 的 asar 感知解析器；ESM 的 bare import 会以 `ERR_MODULE_NOT_FOUND` 失败（已从部署位置实测）。同时**不能**把这些包复制进插件目录：那会产生第二份 `cordis` 实例，破坏服务身份。因此入口文件是 CJS，并通过 `lib/loader.cjs` 的安装路径感知解析器取得宿主模块。
+
+3. **PNG 的 IDAT 必须是 zlib 流。** `fflate.deflateSync` 输出的是**裸 deflate**，libpng 会以 `vipspng: libpng read error` 拒绝；而裸 deflate 用 `inflateRaw` 却能正常解开，这个组合极具误导性。必须用 `fflate.zlibSync`。此项经 A/B 对照实验定位。
+
+4. **图片经 `projectContent` 投递。** `execute` 只能返回纯 JSON，图片字节必须先异步落盘为 attachment，再由 `projectContent` 挂上 `{ type: 'image', attachment }` 块——与 `dsh-mcp-client` 相同的 seam。
+
+## 安装
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1 -WhatIf   # 空运行
+```
+
+安装脚本会：备份 profile 配置到带时间戳的目录 → 把插件**真实复制**到 `profiles\desktop\node_modules\dsh-computer-use` → 在 profile 的 `bundles` 里追加 `dsh-computer-use`。
+
+**刻意不使用 junction**：应用的重启恢复流程（"禁用第三方插件、备份 profile 补丁、重启"）会跟随 junction 并删除其目标，此前曾因此损毁插件源码。
+
+**不修改安装目录内任何文件**，因此 Harness 升级或重装都不会冲掉本插件。
+
+### ⚠️ profile manifest 的 BOM 会直接导致启动崩溃
+
+`~/.dsh/profiles/desktop/package.json` 是模式清单，dsh-host 用裸 `JSON.parse()` 读取它。**只要文件开头有 UTF-8 BOM（`EF BB BF`），host 就在启动早期抛 `Unexpected token '\uFEFF'` 并立刻退出**，弹窗显示"应用无法启动或已意外停止"，而弹窗建议的"重新安装"**完全无效**——重装只覆盖程序目录，不碰 `~/.dsh`。
+
+本插件的 `install.ps1` 第一版踩过这个坑：它用 `Set-Content -Encoding UTF8` 回写清单，而 Windows PowerShell 5.1 下该 cmdlet **必定写入 BOM**。现已改为
+
+```powershell
+[System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($false)))
+```
+
+并在写入后立即检查前三字节，发现 BOM 就抛错中止。**改动写清单的代码时，不要换回 `Set-Content` / `Out-File`。**
+
+再次崩溃时的应急修复：
+
+```powershell
+$p = "$env:USERPROFILE\.dsh\profiles\desktop\package.json"
+$t = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8).TrimStart([char]0xFEFF)
+[System.IO.File]::WriteAllText($p, $t, (New-Object System.Text.UTF8Encoding($false)))
+```
+
+### 回滚
+
+```powershell
+Copy-Item '<backup-dir>\*' "$env:USERPROFILE\.dsh\profiles\desktop" -Force
+Remove-Item "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-computer-use" -Recurse -Force
+```
+
+## 测试
+
+需要以宿主运行时执行，以保证模块解析与生产一致：
+
+```powershell
+$dsh = "D:\Apps\Deepseek Harness\DeepSeek Harness.exe"   # 注意：目录名含空格
+$env:ELECTRON_RUN_AS_NODE="1"
+& $dsh scripts\test-native.cjs       # 原生层 20 项
+& $dsh scripts\test-plugin.cjs       # 插件层 21 项
+& $dsh scripts\verify-deployed.cjs   # 部署副本实载
+& $dsh scripts\check-patch-refs.cjs  # preset 引用的包名是否都存在
+```
+
+`test-native.cjs` 只移动鼠标、不点击、不输入，因此可以安全运行。测试产出的 PNG 在 `test-output/`，可用 `read_image` 查看标尺与象限标注效果。
+
+`check-patch-refs.cjs` 需要传入 asar 路径，例如：
+`node scripts\check-patch-refs.cjs "D:\Apps\Deepseek Harness\resources\app.asar" cordis.patch.yml`
+它可以提前发现 preset 里写错的包名——这类错误会让 bundle 加载失败。作为对照，官方 `standard.patch.yml` 跑同一检查也通过。
+
+## 实测结论（宿主进程内，用带日志的窗体探针验证）
+
+用一个自带日志的 WinForms 探针当靶子，它把自己收到的每一次点击、每一个字符、每一次滚轮写入日志文件——"操作是否真的生效"靠文件证据，不靠猜。
+
+### ✅ 输入注入完全可用
+
+| 功能 | 证据 |
+|---|---|
+| 鼠标移动 | 请求 (600,700)，回读光标落在物理 (600,700) |
+| 单击 / 右键 / 双击 | 窗体记录 `MOUSE Left @client 310,152`，与请求坐标吻合 |
+| 拖拽 | 拖标题栏，窗口从 (450,288) 移到 (322,220)，位移与请求一致 |
+| 滚轮 | `WHEEL delta=240 / -240` |
+| 英文/数字/符号 | 33 个字符全部正确 |
+| **中文 Unicode** | 电/脑/操/作/测/试/：/你/好/，/世/界 全部正确，含全角标点 |
+| 回车 / 退格 | 回车提交完整整行、退格 `U+0008` |
+| 组合键 | `ctrl+shift+a`，修饰键状态正确上报 |
+| 按键连发 | 右方向键 ×3，恰好 3 次事件 |
+| 窗口枚举 / 聚焦 | 正确读出真实标题并成功置顶 |
+
+> ⚠️ **我此前关于输入注入的结论是错的。** 我曾报告 `SetCursorPos` 返回 `false`、事件到不了系统，并推测是令牌或策略拦截。真实原因是我**在沙箱化的 shell 里做的诊断**——受限令牌无法操作输入桌面。真实宿主进程（正常令牌）没有任何问题。**不要把沙箱内测到的 Win32 失败当作产品缺陷。**
+
+### 📐 三套坐标空间（已用像素级比对确认）
+
+本环境有 **125% 显示缩放**，界面里同时存在三个坐标系：
+
+| 坐标系 | 尺寸 | 谁在用 |
+|---|---|---|
+| 物理像素 | 1920×1080 | `computer` 工具、GDI 截图、`GetSystemMetrics` |
+| 逻辑像素 | 1536×864（×0.8） | 普通 32 位未声明 DPI 感知的程序 |
+| 截图图像 | 等于工具的坐标 | 1:1 对应 `computer` 的坐标 |
+
+验证方法：把探针窗体涂成品红色，在截图里量出包围盒，再算出其真实屏幕位置，两边比对。
+
+**结论：在截图里量到的像素点可以直接当 `click` 坐标用，无需换算。** 因为截图与工具同处物理像素空间，而输入注入也在物理像素空间（宿主进程是 per-monitor DPI aware）。只有当操作目标是未声明 DPI 感知的老程序、且需要按"它自己的逻辑坐标"下判断时，才需要 ×0.8。
+
+### 图像如何送进模型（最容易踩错的一环）
+
+图像经 **`output.render`**（同步）投递，且附件引用必须作为**可枚举的普通 JSON 字段写在输出值内部**（`images` 数组，已在 output schema 里声明）。
+
+这不是风格选择，是被调度器的执行顺序强制的。`dsh-tools` 的顺序是：
+
+```js
+const detached = snapshotToolValue(tool.name, candidate); // JSON 往返快照
+const value = deepFreeze(detached);                        // 深冻结
+rendered = tool.output.render(exec.arguments, value);      // 最后才 render
+```
+
+**`render` 拿到的不是 `execute` 返回的那个对象，而是它的 JSON 快照的冻结副本。** 因此：
+
+- 用 `Symbol` 属性挂载 → 快照时被剥掉
+- 用 `WeakMap` 以返回值为键 → 键对象已被替换，查不到
+- 用 `projectContent`（最初的做法）→ 调度器不查这条路径
+
+三种做法都表现为**同一个极具误导性的症状**：文字说明正常到达（"已捕获 1920×1080 图像"），**但图像从未进入模型上下文**。模型于是会描述一个它没看见的屏幕。
+
+`read_image` 之所以可靠，正是因为它把引用放在 `value.image` 里——可枚举、在 schema 内、能过快照。
+
+**改动此处时请运行 `test-plugin.cjs` 的 `the image reference SURVIVES the dispatcher snapshot` 用例**，它复刻了快照+冻结链路，任何走旁路的做法都会当场失败。
+
+### 输出 schema 里的字段不会自动送达模型
+
+同一个机制的另一面：**模型看到的内容完全由 `output.render` 决定。** schema 校验只保证值合法；`windows`、`steps` 这类数组即使声明了、填了值，如果 `render` 没把它们打印进文本块，模型就收不到。
+
+症状很隐蔽：agent 会知道"找到 5 个窗口"，却**说不出其中任何一个的名字**。
+
+所以凡是要给模型看的数据，都必须出现在 `render` 的输出里：
+
+| 动作 | render 中必须包含 |
+|---|---|
+| `windows` | 完整列表（handle / 尺寸 / 位置 / 标题），而不只是数量 |
+| `computer_batch` | 每步结果摘要（`cursor` 坐标、`screen_info` 数值等），而不只是"完成 3 个动作" |
+| `screen_info` / `cursor` | 几何数值与指针位置 |
+| `screenshot` | 文字说明 + 由 `images` 数组转换的图像块 |
+
+`test-plugin.cjs` 的 `windows action RENDERS the list, not just counts it` 专门守这条：它逐条核对每个窗口的 handle 与标题都出现在渲染文本中。
+
+### 窗口截图的边框：必须用 DWM 边框
+
+`GetWindowRect` 包含 DWM 保留的**不可见调整边框**（每边约 8px），按它裁剪会在右侧和下方留下黑边。`DWMWA_EXTENDED_FRAME_BOUNDS` 返回的才是用户看得见的边框。
+
+`windows` 报告与窗口截图**都**使用 DWM 边框（经 `visibleBounds()`），两者必须一致——否则坐标读数会对不上，测试 `window capture matches the DWM frame, not GetWindowRect` 会失败。
+
+### 窗口枚举的过滤规则
+
+`IsWindowVisible` 会放过大量幽灵窗口：IME 隐藏窗口（同一标题重复 4-5 次）、UWP 已挂起窗口、零面积的通知窗口。过滤链：
+
+1. `IsWindowVisible` — 基础可见性
+2. `DWMWA_CLOAKED` — DWM 标记为对用户隐藏（UWP 挂起、IME 候选窗）
+3. `WS_EX_TOOLWINDOW` — 工具面板类窗口
+4. 空标题
+5. **零面积** — `495x0` 这类不是有效截图目标
+6. **离屏** — 完全不在虚拟桌面范围内
+
+注意**不过滤** `WS_EX_NOREDIRECTIONBITMAP`（GPU 合成窗口）：DSH 自己的窗口就带这个标志，过滤掉它会让 agent 无法查看自己所在的宿主程序。这类窗口会被标记为 `gpu-composited` 并在文字里提示"直接截图可能返回空白，改截屏幕区域"。实测中 DSH 窗口走的是屏幕回退路径，能正常看到内容。
+
+### 分辨率策略：不做预防性降采样
+
+图像由**模型自己**下采样，所以本插件**默认以屏幕真实分辨率交付**——1920×1080 的桌面就送 1920×1080 的图，agent 自己决定要看哪块、要不要局部放大。
+
+早期版本会主动把全屏压到 1152px（scale 0.6），这是基于"模型图像输入分辨率低、需要先缩小"的**错误前提**。代价是丢弃了细节，而模型本来可以自己决定保留多少。
+
+`fullMaxDimension`（默认 4096）现在是**安全上限而非目标**，只在虚拟桌面异常大时才生效。`scale` 参数仍可用，但用于"我就是想要一张小图"这种明确需求。
+
+坐标标尺与象限标记保留：它们解决的是另一个问题——**告诉 agent 某个东西在哪**，而不是省 token。
+
+### 已知限制
+
+1. **前台命令启动的 GUI 进程会被回收。** 用 `Start-Process` 弹出的窗口在命令结束后随之消失。要让 agent 常驻操作某个 GUI 程序，必须用**后台任务**启动，不能随手 `Start-Process`。
+2. **UAC / 安全桌面截不到**，也无法向提权窗口注入输入（UIPI）。
+3. **无附件服务时降级**：截图仍会落盘并在文字里说明原因与文件路径，可用 `read_image` 兜底读取。
+
+## 配置项
+
+在 `cordis.patch.yml` 的 `preset-computer` → `computer-use.config` 下调整：
+
+| 字段 | 默认 | 含义 |
+|---|---|---|
+| `enabled` | `true` | 总开关 |
+| `thumbnailMaxDimension` | `1152` | 全屏概览图最长边；1920 屏对应 scale 0.6 |
+| `nativeMaxDimension` | `1400` | 区域截图超过此值才降采样 |
+| `pngLevel` | `6` | PNG deflate 级别 1–9 |
+| `maxBatchActions` | `40` | 单次 `computer_batch` 的动作上限 |
+| `outputDirectory` | `''` | 截图落盘目录；留空用系统临时目录 |
+
+## 文件结构
+
+```
+dsh-computer-use/
+├── package.json          # type: commonjs（必须）
+├── cordis.patch.yml      # 挂载插件 + 声明 preset-computer
+├── install.ps1           # 安装脚本
+├── lib/
+│   ├── index.js          # 插件主体：两个工具 + 提示词段落
+│   └── loader.cjs        # 安装路径感知的模块解析（穿透 asar）
+├── src/
+│   ├── win32.cjs         # koffi 绑定 user32/gdi32
+│   ├── capture.cjs       # GDI 截屏
+│   └── png.cjs           # 自包含 PNG 编码器 + 标尺 + 象限
+└── scripts/
+    ├── test-native.cjs
+    ├── test-plugin.cjs
+    └── verify-deployed.cjs
+```

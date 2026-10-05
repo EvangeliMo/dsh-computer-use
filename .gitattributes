@@ -1,0 +1,8 @@
+# Keep line endings exactly as authored.
+#
+# verify-deployed.cjs compares the deployed plugin copy against this source tree
+# byte for byte. Git's default autocrlf on Windows would rewrite LF to CRLF on
+# checkout, so the two trees would differ and the verification would fail for a
+# reason that has nothing to do with the plugin. Disabling text conversion keeps
+# both trees byte-identical on every platform.
+* -text

@@ -1,0 +1,24 @@
+{
+  "name": "dsh-computer-use",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Computer-use mode for DeepSeek Harness: screen capture plus mouse, keyboard and window control, for operating software that has no agent-facing integration and for reading information that only exists on screen.",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test:native": "node scripts/test-native.cjs",
+    "test:plugin": "node scripts/test-plugin.cjs",
+    "test": "node scripts/test-native.cjs && node scripts/test-plugin.cjs"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,11 @@
+# Build and test artifacts
+node_modules/
+test-output/
+
+# Local capture output (screenshots written by the plugin at runtime)
+capture-*.png
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
