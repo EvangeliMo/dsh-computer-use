@@ -1,19 +1,47 @@
 {
-  "name": "dsh-computer-use",
+  "name": "@evangelimo/dsh-computer-use",
   "version": "0.1.0",
-  "private": true,
   "type": "commonjs",
-  "description": "Computer-use mode for DeepSeek Harness: screen capture plus mouse, keyboard and window control, for operating software that has no agent-facing integration and for reading information that only exists on screen.",
+  "description": "Computer-use mode for DeepSeek Harness: native-resolution screen capture plus mouse, keyboard and window control, for operating software that has no agent-facing integration.",
   "main": "./lib/index.js",
   "exports": {
     ".": "./lib/index.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
+  "files": [
+    "lib/",
+    "src/",
+    "cordis.patch.yml",
+    "install.ps1",
+    "README.md"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "computer-use",
+    "screen-capture",
+    "gui-automation"
+  ],
+  "os": [
+    "win32"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EvangeliMo/dsh-computer-use.git"
+  },
+  "homepage": "https://github.com/EvangeliMo/dsh-computer-use#readme",
+  "bugs": {
+    "url": "https://github.com/EvangeliMo/dsh-computer-use/issues"
   },
   "scripts": {
     "test:native": "node scripts/test-native.cjs",

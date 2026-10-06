@@ -6,17 +6,33 @@
 
 前提：Windows + 已安装 DeepSeek Harness 桌面版。
 
+**方式一：从 Harness 界面安装（推荐）**
+
+在插件页点「添加插件」，输入包名：
+
+```
+@evangelimo/dsh-computer-use
+```
+
+或直接输入仓库地址：
+
+```
+https://github.com/EvangeliMo/dsh-computer-use
+```
+
+安装后**重启 Harness**，新建任务时选择「电脑操作模式」。
+
+**方式二：克隆后本地安装**
+
 ```powershell
 git clone https://github.com/EvangeliMo/dsh-computer-use.git
 cd dsh-computer-use
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
 ```
 
-然后**重启 Harness**，新建任务时选择「电脑操作模式」。
-
 安装脚本会自动定位 profile（优先 `desktop`；机器上有多个 profile 且无 `desktop` 时会报错要求你显式指定 `-Profile <路径>`）。先用 `-WhatIf` 空运行可以看到它打算做什么而不写入任何东西。
 
-**不需要 `npm install`。** 本插件不声明任何依赖：`koffi`、`fflate`、`@deepseek-ai/dsh-tools`、`@deepseek-ai/schemastery` 都由 Harness 安装目录提供，`lib/loader.cjs` 从 `process.resourcesPath` 推导安装位置去解析它们。因此**克隆到任何位置都能工作**，也不依赖网络。
+**不需要 `npm install`。** 本插件不声明任何依赖：`koffi`、`fflate`、`@deepseek-ai/dsh-tools`、`@deepseek-ai/schemastery` 都由 Harness 安装目录提供，`lib/loader.cjs` 从 `process.resourcesPath` 推导安装位置去解析它们。因此**无论从界面安装、从 npm 安装还是克隆到任意位置都能工作**，也不依赖网络。
 
 ## 这个模式提供什么
 

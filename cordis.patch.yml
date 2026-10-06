@@ -4,9 +4,9 @@
 # the session picker alongside 标准模式 / PTC 模式 / 极简模式 / 创造模式, and which
 # mounts this package inside its own plugin list.
 #
-# ⚠️ Do NOT also insert a top-level `- id: dsh-computer-use / name: dsh-computer-use`
-# row here. That was the original shape and it produced a red "异常" entry on the
-# plugin list while the mode worked fine:
+# ⚠️ Do NOT also insert a top-level row mounting this package. That was the
+# original shape and it produced a red "异常" entry on the plugin list while the
+# mode worked fine:
 #
 #   * the tool registry refuses a duplicate name in one scope, throwing
 #     `tool "computer" is already registered`, so the second load fails its fiber;
@@ -181,8 +181,13 @@
                   maxRounds: 64
 
           # --- the capability this mode exists for -------------------------
+          # The module name is the SCOPED package name on purpose. Installing
+          # from the plugin dialog (or npm) places the package at
+          # node_modules/@evangelimo/dsh-computer-use, so an unscoped reference
+          # here would resolve to nothing and the mode would load without its
+          # tools. install.ps1 deploys to the same scoped path for the same reason.
           - id: computer-use
-            name: dsh-computer-use
+            name: '@evangelimo/dsh-computer-use'
             config:
               enabled: true
               # Captures are delivered at the screen's real resolution: the model

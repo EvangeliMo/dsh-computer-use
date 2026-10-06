@@ -36,9 +36,12 @@ const { join } = require('node:path');
  */
 function defaultDeployedDir() {
   const profileDir = process.env.DSH_PROFILE_DIR;
-  if (profileDir) return join(profileDir, 'node_modules', 'dsh-computer-use');
+  // The package is scoped, so pnpm (and install.ps1) nest it under
+  // node_modules/@evangelimo/, and the patch's module name matches that path.
+  const rel = ['node_modules', '@evangelimo', 'dsh-computer-use'];
+  if (profileDir) return join(profileDir, ...rel);
   const home = process.env.USERPROFILE ?? process.env.HOME;
-  if (home) return join(home, '.dsh', 'profiles', 'desktop', 'node_modules', 'dsh-computer-use');
+  if (home) return join(home, '.dsh', 'profiles', 'desktop', ...rel);
   throw new Error('cannot locate the profile: set DSH_PROFILE_DIR or USERPROFILE, or pass the path as argument 1');
 }
 

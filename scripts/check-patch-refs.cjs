@@ -75,8 +75,14 @@ const jsonSize = head.readUInt32LE(12);
 const jsonBuf = readArchiveHead(asar, 16 + jsonSize).subarray(16);
 const header = JSON.parse(jsonBuf.toString('utf8'));
 
-// Package names available to a loader: the installation's node_modules plus the
-// profile's own bundles, which are not in the asar.
+// Package names available to a loader. Two sources, and both matter:
+//
+//   1. the installation's own node_modules (inside the asar), which supplies the
+//      first-party @deepseek-ai packages a preset mounts;
+//   2. the active profile's node_modules, which supplies third-party bundles --
+//      including this package itself, installed from the registry or linked
+//      locally. Checking only (1) reports every locally installed plugin as
+//      missing.
 const available = new Set();
 const nm = header.files?.dsh?.files?.node_modules?.files ?? {};
 for (const key of Object.keys(nm)) {
@@ -86,9 +92,33 @@ for (const key of Object.keys(nm)) {
     available.add(key);
   }
 }
-// Cordis built-ins and this plugin itself are resolved by the loader directly.
+
+/** Record every package present in a node_modules directory, one level deep. */
+function addProfilePackages(dir) {
+  if (dir === undefined || !fs.existsSync(dir)) return 0;
+  let count = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+    if (entry.name.startsWith('@')) {
+      const scopeDir = path.join(dir, entry.name);
+      for (const sub of fs.readdirSync(scopeDir)) {
+        available.add(`${entry.name}/${sub}`);
+        count += 1;
+      }
+    } else {
+      available.add(entry.name);
+      count += 1;
+    }
+  }
+  return count;
+}
+
+const profileDir = process.env.DSH_PROFILE_DIR
+  ?? (process.env.USERPROFILE ? path.join(process.env.USERPROFILE, '.dsh', 'profiles', 'desktop') : undefined);
+const profileCount = addProfilePackages(profileDir ? path.join(profileDir, 'node_modules') : undefined);
+
+// Cordis resolves these itself; they are not packages.
 available.add('cordis:group');
-available.add('dsh-computer-use');
 
 const yaml = fs.readFileSync(patch, 'utf8');
 // Only `name:` under a plugin/insert entry is a package reference. Keys such as
@@ -101,6 +131,9 @@ const unique = [...new Set(refs)];
 
 console.log(`patch file: ${path.basename(patch)}`);
 console.log(`referenced names: ${unique.length}`);
+console.log(`package sources: installation (${available.size - profileCount - 1} names)`
+  + ` + profile (${profileCount})`
+  + (profileDir ? ` [${profileDir}]` : ' [no profile found]'));
 
 /**
  * A reference resolves when its package root exists. Subpath exports such as

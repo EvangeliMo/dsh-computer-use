@@ -19,7 +19,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$pluginName = 'dsh-computer-use'
+$pluginName = '@evangelimo/dsh-computer-use'
 $source     = $PSScriptRoot
 
 <#
@@ -97,10 +97,13 @@ if (-not $WhatIf) {
 Write-Host "      -> $backup"
 
 Write-Host "[2/5] copy plugin as a real directory"
+# A scoped name nests under node_modules/<scope>/, which is exactly where pnpm
+# would put it were the package installed from the registry -- so the module
+# reference in cordis.patch.yml resolves the same way for both install routes.
 $modules = Join-Path $Profile 'node_modules'
 $target  = Join-Path $modules $pluginName
 if (-not $WhatIf) {
-  New-Item -ItemType Directory -Path $modules -Force | Out-Null
+  New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
   if (Test-Path $target) {
     $item = Get-Item $target -Force
     # A junction must be removed with rmdir so its target is not followed.
@@ -122,13 +125,21 @@ Write-Host "[3/5] declare the bundle in the profile manifest"
 $manifestPath = Join-Path $Profile 'package.json'
 $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
 
+# The package was previously published under the unscoped name. A profile
+# installed before that rename still names it, and leaving the old entry behind
+# points the loader at a directory nothing deploys any more, so drop it.
+$legacyName = 'dsh-computer-use'
+
 $deps = [ordered]@{}
 if ($manifest.dependencies) {
-  foreach ($p in $manifest.dependencies.PSObject.Properties) { $deps[$p.Name] = $p.Value }
+  foreach ($p in $manifest.dependencies.PSObject.Properties) {
+    if ($p.Name -eq $legacyName) { Write-Host "      dropping legacy dependency: $legacyName"; continue }
+    $deps[$p.Name] = $p.Value
+  }
 }
 $deps[$pluginName] = "link:$source"
 
-$bundles = @($manifest.dsh.profile.bundles)
+$bundles = @($manifest.dsh.profile.bundles | Where-Object { $_ -ne $legacyName })
 if ($bundles -notcontains $pluginName) { $bundles += $pluginName }
 
 if (-not $WhatIf) {
