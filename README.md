@@ -14,7 +14,9 @@
 dsh-computer-use-mode
 ```
 
-或直接输入仓库地址：
+该包已发布到 npm：<https://www.npmjs.com/package/dsh-computer-use-mode>
+
+或直接输入仓库地址（不依赖 npm）：
 
 ```
 https://github.com/EvangeliMo/dsh-computer-use
