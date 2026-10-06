@@ -1,13 +1,21 @@
 # dsh-computer-use bundle patch.
 #
-# Two things are declared here:
+# Declares exactly ONE row: a fifth agent preset, `computer`, which appears in
+# the session picker alongside 标准模式 / PTC 模式 / 极简模式 / 创造模式, and which
+# mounts this package inside its own plugin list.
 #
-# 1. The host plugin row, which registers the `computer` and `computer_batch`
-#    tools. It is inserted at the host plane, but tools only become visible to an
-#    agent whose preset mounts this row — see the preset below.
+# ⚠️ Do NOT also insert a top-level `- id: dsh-computer-use / name: dsh-computer-use`
+# row here. That was the original shape and it produced a red "异常" entry on the
+# plugin list while the mode worked fine:
 #
-# 2. A fifth agent preset, `computer`, which appears in the session picker
-#    alongside 标准模式 / PTC 模式 / 极简模式 / 创造模式.
+#   * the tool registry refuses a duplicate name in one scope, throwing
+#     `tool "computer" is already registered`, so the second load fails its fiber;
+#   * the Web surface deliberately keeps the agent plane OUT of the host plane —
+#     `dsh-web-app/cordis.patch.yml` disables every `tool-*` row (tool-fs,
+#     tool-pwsh, tool-jobs, ...) and lets each session's preset compose them
+#     instead. A host-plane row that registers agent tools is fighting that design.
+#
+# So the package is mounted in exactly one place: this preset.
 #
 # The preset deliberately re-declares the whole standard tool roster rather than
 # inheriting it: a preset's `plugins` list is what the session actually mounts, so
@@ -16,9 +24,6 @@
 # place. Keep it in sync when the Web app's standard.patch.yml gains a row.
 
 - insert:
-    - id: dsh-computer-use
-      name: dsh-computer-use
-
     - id: preset-computer
       name: '@deepseek-ai/dsh-agent-preset'
       config:

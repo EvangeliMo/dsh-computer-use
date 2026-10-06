@@ -369,19 +369,28 @@ async function main() {
     return `${shown} window(s) fully listed in the text the model receives`;
   });
 
-  await checkAsync('window enumeration excludes zero-area and cloaked ghosts', async () => {
+  await checkAsync('window enumeration excludes zero-area and off-screen ghosts', async () => {
     const value = await computer.execute({ action: 'windows' }, exec);
+    const screen = (await computer.execute({ action: 'screen_info' }, exec)).screen;
     for (const w of value.windows) {
       if (w.bounds.width <= 0 || w.bounds.height <= 0) {
         throw new Error(`zero-area window listed: ${JSON.stringify(w.title)} ${w.bounds.width}x${w.bounds.height}`);
       }
+      if (w.minimized) continue;
+      const overlaps =
+        w.bounds.x < screen.originX + screen.width &&
+        w.bounds.y < screen.originY + screen.height &&
+        w.bounds.x + w.bounds.width > screen.originX &&
+        w.bounds.y + w.bounds.height > screen.originY;
+      if (!overlaps) {
+        throw new Error(`off-screen window listed: ${JSON.stringify(w.title)} at ${w.bounds.x},${w.bounds.y}`);
+      }
     }
-    const titles = value.windows.map((w) => w.title);
-    const dupes = titles.filter((t, i) => titles.indexOf(t) !== i);
-    if (dupes.length > 0) {
-      throw new Error(`duplicate titles survived filtering: ${JSON.stringify([...new Set(dupes)])}`);
-    }
-    return `${value.count} distinct, non-empty window(s)`;
+    // Duplicate titles are deliberately NOT an error: several windows of one app
+    // legitimately share a title (two WeChat windows, two Explorer windows). The
+    // cloaked/zero-area/off-screen rules are the ghost filters; title equality
+    // would also reject perfectly real windows.
+    return `${value.count} non-empty, on-screen window(s)`;
   });
 
   await checkAsync('window capture matches the DWM frame, not GetWindowRect', async () => {
