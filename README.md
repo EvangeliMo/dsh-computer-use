@@ -1,5 +1,7 @@
 # dsh-computer-use-mode — 电脑操作模式
 
+中文 | [English](README.en.md)
+
 在 DeepSeek Harness 中新增第五个模式「电脑操作模式」：保留标准模式的全部能力，并加上**屏幕截图**与**鼠标键盘控制**，用于操作没有 agent 接口的软件、以及读取只存在于屏幕上的信息。
 
 ## 快速开始
