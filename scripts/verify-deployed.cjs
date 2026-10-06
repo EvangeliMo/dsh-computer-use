@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Verify the DEPLOYED plugin copy loads from its real profile location.
  *
  * This is the check that matters: if the host modules or the native helpers
@@ -58,9 +58,9 @@ console.log('');
 // The two trees must agree.
 //
 // This is the check that was missing. The profile manifest declares
-// `dsh-computer-mode` as `link:<source>`, while `install.ps1` also copies the
+// `dsh-computer-use-mode` as `link:<source>`, while `install.ps1` also copies the
 // plugin into `node_modules/`. Which of the two the host actually resolves is
-// an implementation detail that has already changed once 鈥?and if they drift
+// an implementation detail that has already changed once — and if they drift
 // apart, verifying only the copy reports success while the host runs different
 // code. Comparing them removes the question entirely: identical trees make the
 // ambiguity harmless, and a divergence is a loud failure either way.
@@ -118,7 +118,7 @@ for (const rel of walk(source)) {
 const extra = walk(deployed).filter((rel) => !existsSync(join(source, rel)));
 
 if (missing.length === 0 && differing.length === 0 && extra.length === 0) {
-  console.log(`  OK   ${compared} file(s) byte-identical 鈥?it does not matter which tree the host loads`);
+  console.log(`  OK   ${compared} file(s) byte-identical — it does not matter which tree the host loads`);
 } else {
   if (differing.length > 0) {
     console.log(`  FAIL ${differing.length} file(s) differ between source and deployed copy:`);
@@ -151,14 +151,16 @@ if (!existsSync(manifestPath)) {
   if (raw.charCodeAt(0) === 0xfeff) {
     // dsh-host reads this with a bare JSON.parse(), so a BOM kills startup
     // before the window appears.
-    console.log('  FAIL the manifest starts with a UTF-8 BOM 鈥?dsh-host will crash on startup');
+    console.log('  FAIL the manifest starts with a UTF-8 BOM — dsh-host will crash on startup');
     process.exitCode = 1;
   } else {
     console.log('  OK   manifest has no BOM');
   }
   try {
     const manifest = JSON.parse(raw.replace(/^\uFEFF/, ''));
-    const spec = manifest?.dependencies?.['dsh-computer-use-mode'];
+    // Both names must track package.json: the dependency key and the bundle entry.
+    const self = require('../package.json').name;
+    const spec = manifest?.dependencies?.[self];
     console.log(`  spec : ${spec ?? '(not declared)'}`);
     if (typeof spec === 'string' && spec.startsWith('link:')) {
       const target = spec.slice('link:'.length).replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
@@ -170,8 +172,8 @@ if (!existsSync(manifestPath)) {
       );
     }
     const bundled = manifest?.dsh?.profile?.bundles ?? [];
-    if (!bundled.includes('dsh-computer-use-mode')) {
-      console.log('  WARN dsh-computer-mode is not in dsh.profile.bundles, so it will not load');
+    if (!bundled.includes(self)) {
+      console.log(`  WARN ${self} is not in dsh.profile.bundles, so it will not load`);
       process.exitCode = 1;
     } else {
       console.log('  OK   listed in dsh.profile.bundles');

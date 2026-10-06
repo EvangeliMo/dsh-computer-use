@@ -1,4 +1,4 @@
-# Install the dsh-computer-mode bundle into a DSH profile.
+# Install the dsh-computer-use-mode bundle into a DSH profile.
 #
 # Deliberately uses REAL directory copies, never junctions: the app's recovery
 # flow ("disable third-party plugins, back up profile patch, restart") follows
@@ -184,7 +184,7 @@ if (-not $WhatIf) {
 
 Write-Host "[5/5] done"
 Write-Host ""
-Write-Host "Restart DeepSeek Harness, then pick '閻絻鍓抽幙宥勭稊濡€崇础' when starting a new task."
+Write-Host "Restart DeepSeek Harness, then pick '电脑操作模式' when starting a new task."
 Write-Host "Rollback if needed:"
 Write-Host "  Copy-Item '$backup\*' '$Profile' -Force"
 Write-Host "  Remove-Item '$target' -Recurse -Force"
