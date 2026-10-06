@@ -129,28 +129,96 @@ async function main() {
     },
   };
 
-  const ctx = {
-    logger: {
-      info: (...a) => logs.push(['info', a.join(' ')]),
-      warn: (...a) => logs.push(['warn', a.join(' ')]),
-      error: (...a) => logs.push(['error', a.join(' ')]),
-    },
-    tools: { register: (tool) => { registered.push(tool); return () => {}; } },
-    get(key) {
-      if (key === 'attachments') return attachmentsStore;
-      if (key === 'systemPrompt') {
-        return {
-          section: (s) => { sections.push(s); return () => {}; },
-          getSectionOrder: (n) => (n === 'TOOL_COMPUTER_USE' ? 3000 : undefined),
-        };
-      }
-      return undefined;
-    },
-  };
+  /**
+   * Build a context that enforces Cordis's service-access guard.
+   *
+   * A plain object stub cannot catch this class of bug: Cordis throws
+   * `cannot get property "<name>" without inject` when a plugin reads a service
+   * as a bare property it did not declare in `inject`. This package injects only
+   * `tools`, so reads of `agent`, `attachments` or `systemPrompt` must go through
+   * `ctx.get(...)`. One such bare read (`ctx.agent`) shipped and broke tool
+   * assembly in production, because the stub happily returned undefined.
+   *
+   * Known service names are declared here so the guard fires only for services
+   * the plugin did not inject, exactly as the real runtime behaves.
+   *
+   * @param attached - the services this plugin legitimately injects.
+   * @returns a guarded context object.
+   */
+  function guardedContext(attached) {
+    const services = new Map(Object.entries(attached));
+    const target = {
+      logger: {
+        info: (...a) => logs.push(['info', a.join(' ')]),
+        warn: (...a) => logs.push(['warn', a.join(' ')]),
+        error: (...a) => logs.push(['error', a.join(' ')]),
+      },
+      tools: {
+        register: (tool) => {
+          registered.push(tool);
+          return () => {};
+        },
+      },
+      get(key) {
+        if (key === 'attachments') return attachmentsStore;
+        if (key === 'systemPrompt') {
+          return {
+            section: (s) => {
+              sections.push(s);
+              return () => {};
+            },
+            getSectionOrder: (n) => (n === 'TOOL_COMPUTER_USE' ? 3000 : undefined),
+          };
+        }
+        return services.get(key);
+      },
+    };
+
+    // Services a plugin may read as a property only when it injected them.
+    const GUARDED = ['agent', 'sessionProjections', 'llm', 'fs', 'commands', 'userQuestions'];
+    return new Proxy(target, {
+      get(obj, prop, receiver) {
+        if (typeof prop === 'string' && GUARDED.includes(prop) && !services.has(prop)) {
+          throw new Error(`cannot get property "${prop}" without inject`);
+        }
+        return Reflect.get(obj, prop, receiver);
+      },
+      has(obj, prop) {
+        return Reflect.has(obj, prop);
+      },
+    });
+  }
+
+  const ctx = guardedContext({ tools: true });
 
   check('apply() runs without throwing', () => {
     mod.apply(ctx, config);
     return `${registered.length} tool(s), ${sections.length} prompt section(s)`;
+  });
+
+  check('apply() never reads a service it did not inject', () => {
+    // Re-run against a fresh guarded context: any bare read of a guarded service
+    // throws out of apply() and fails this check. This is the regression test for
+    // the `ctx.agent` bug, whose symptom was a hard failure of the session's tool
+    // assembly rather than a log line.
+    //
+    // The side effects of the re-run are rolled back so later assertions still see
+    // exactly one registration pass.
+    const savedTools = registered.length;
+    const savedSections = sections.length;
+    registered.length = 0;
+    sections.length = 0;
+    let threw = null;
+    try {
+      mod.apply(guardedContext({ tools: true }), config);
+    } catch (error) {
+      threw = error.message;
+    } finally {
+      registered.length = savedTools;
+      sections.length = savedSections;
+    }
+    if (threw) throw new Error(`apply() threw under the access guard: ${threw}`);
+    return 'no un-injected service reads';
   });
 
   check('registered exactly `computer` and `computer_batch`', () => {
