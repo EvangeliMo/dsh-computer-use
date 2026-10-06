@@ -1,6 +1,6 @@
 {
   "name": "dsh-computer-use-mode",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "commonjs",
   "description": "Computer-use mode for DeepSeek Harness: native-resolution screen capture plus mouse, keyboard and window control, for operating software that has no agent-facing integration.",
   "main": "./lib/index.js",
