@@ -1,4 +1,4 @@
-# Install the dsh-computer-use bundle into the desktop profile.
+# Install the dsh-computer-use bundle into a DSH profile.
 #
 # Deliberately uses REAL directory copies, never junctions: the app's recovery
 # flow ("disable third-party plugins, back up profile patch, restart") follows
@@ -7,18 +7,80 @@
 # Usage:
 #   powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
 #   powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1 -WhatIf
+#   powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1 -Profile <path>
+#
+# The profile is detected automatically; pass -Profile to override.
 
 [CmdletBinding()]
 param(
   [switch]$WhatIf,
-  [string]$Profile = "$env:USERPROFILE\.dsh\profiles\desktop"
+  [string]$Profile = ''
 )
 
 $ErrorActionPreference = 'Stop'
 
 $pluginName = 'dsh-computer-use'
-$workspace  = Split-Path -Parent $PSScriptRoot
 $source     = $PSScriptRoot
+
+<#
+.SYNOPSIS
+  Resolve which DSH profile to install into.
+
+.DESCRIPTION
+  Hard-coding `desktop` was wrong: a machine may have several profiles (this one
+  has `desktop` and `web`), and installing into the wrong one silently does
+  nothing useful while editing a config file the user did not mean to touch.
+  So the candidates are validated by shape, and an ambiguous set is an error
+  rather than a guess.
+
+.OUTPUTS
+  The profile directory path.
+#>
+function Resolve-DshProfile {
+  # 1. The host publishes its own profile directory; trust it when valid.
+  if ($env:DSH_PROFILE_DIR -and (Test-Path (Join-Path $env:DSH_PROFILE_DIR 'cordis.yml'))) {
+    return $env:DSH_PROFILE_DIR
+  }
+
+  $root = Join-Path $env:USERPROFILE '.dsh\profiles'
+  if (-not (Test-Path $root)) { throw "no DSH profiles found at $root" }
+
+  # 2. A profile owns both a cordis.yml and a package.json carrying the bundle list.
+  $candidates = @()
+  foreach ($dir in Get-ChildItem $root -Directory) {
+    $hasCordis = Test-Path (Join-Path $dir.FullName 'cordis.yml')
+    $manifest  = Join-Path $dir.FullName 'package.json'
+    if (-not ($hasCordis -and (Test-Path $manifest))) { continue }
+    $ok = $false
+    try {
+      $json = Get-Content $manifest -Raw | ConvertFrom-Json
+      $ok = $null -ne $json.dsh.profile.bundles
+    } catch { $ok = $false }
+    if ($ok) { $candidates += $dir.FullName }
+  }
+
+  if ($candidates.Count -eq 1) { return $candidates[0] }
+  if ($candidates.Count -eq 0) { throw "no valid DSH profile under $root (expected cordis.yml plus dsh.profile.bundles)" }
+
+  # 3. Several profiles (a machine may hold `desktop` and `web`). This plugin
+  # drives the desktop app, so a `desktop` profile is the intended target and
+  # choosing it is not a guess. Anything else stays an error.
+  #
+  # @(...) matters: Where-Object yields a bare string when it matches once, and
+  # indexing a string in PowerShell returns a character, so `$desktop[0]` used to
+  # evaluate to 'C' and the install died on a nonsense path.
+  $desktop = @($candidates | Where-Object { (Split-Path $_ -Leaf) -eq 'desktop' })
+  if ($desktop.Count -gt 0) {
+    Write-Host "note: several profiles found; using 'desktop'. Pass -Profile to override."
+    return $desktop[0]
+  }
+
+  throw "several DSH profiles found:`n  $($candidates -join "`n  ")`nPass -Profile <path> to choose one."
+}
+
+if ([string]::IsNullOrWhiteSpace($Profile)) { $Profile = Resolve-DshProfile }
+$Profile = (Resolve-Path $Profile).Path
+Write-Host "profile: $Profile"
 
 if (-not (Test-Path $Profile)) { throw "profile not found: $Profile" }
 

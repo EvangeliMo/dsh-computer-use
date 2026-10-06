@@ -2,14 +2,32 @@
 
 在 DeepSeek Harness 中新增第五个模式「电脑操作模式」：保留标准模式的全部能力，并加上**屏幕截图**与**鼠标键盘控制**，用于操作没有 agent 接口的软件、以及读取只存在于屏幕上的信息。
 
+## 快速开始
+
+前提：Windows + 已安装 DeepSeek Harness 桌面版。
+
+```powershell
+git clone https://github.com/EvangeliMo/dsh-computer-use.git
+cd dsh-computer-use
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
+```
+
+然后**重启 Harness**，新建任务时选择「电脑操作模式」。
+
+安装脚本会自动定位 profile（优先 `desktop`；机器上有多个 profile 且无 `desktop` 时会报错要求你显式指定 `-Profile <路径>`）。先用 `-WhatIf` 空运行可以看到它打算做什么而不写入任何东西。
+
+**不需要 `npm install`。** 本插件不声明任何依赖：`koffi`、`fflate`、`@deepseek-ai/dsh-tools`、`@deepseek-ai/schemastery` 都由 Harness 安装目录提供，`lib/loader.cjs` 从 `process.resourcesPath` 推导安装位置去解析它们。因此**克隆到任何位置都能工作**，也不依赖网络。
+
 ## 这个模式提供什么
 
 两个工具：
 
 | 工具 | 用途 |
 |---|---|
-| `computer` | 单步操作：`screenshot` / `screen_info` / `windows` / `focus_window` / `click` / `double_click` / `right_click` / `middle_click` / `move` / `drag` / `scroll` / `type` / `shortcut` / `key` / `cursor` / `sleep` |
-| `computer_batch` | 一次调用执行多步序列（可带 `sleep` 等界面稳定），用于「点击 → 输入 → 回车」这类机械连招 |
+| `computer` | 单步操作。动作：`screenshot` / `screen_info` / `windows` / `focus_window` / `click` / `double_click` / `right_click` / `middle_click` / `move` / `drag` / `scroll` / `type` / `shortcut` / `key` / `cursor` / `sleep` / `waitForChange` / `waitUntilStable` |
+| `computer_batch` | 一次调用执行多步序列（每步可带 `sleep` 等界面稳定），用于「点击 → 输入 → 回车」这类机械连招 |
+
+`waitForChange` 与 `waitUntilStable` 通过持续采样屏幕来判断界面是否已稳定，避免靠猜 `sleep` 时长。
 
 外加一段系统提示词段落，注册在 Harness 自己预留的 `TOOL_COMPUTER_USE` 插槽（order 3000），负责说明工作流与安全边界。
 
