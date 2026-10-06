@@ -1,4 +1,4 @@
-# Install the dsh-computer-use bundle into a DSH profile.
+# Install the dsh-computer-mode bundle into a DSH profile.
 #
 # Deliberately uses REAL directory copies, never junctions: the app's recovery
 # flow ("disable third-party plugins, back up profile patch, restart") follows
@@ -19,7 +19,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$pluginName = '@evangelimo/dsh-computer-use'
+$pluginName = 'dsh-computer-use-mode'
 $source     = $PSScriptRoot
 
 <#
@@ -86,7 +86,7 @@ if (-not (Test-Path $Profile)) { throw "profile not found: $Profile" }
 
 Write-Host "[1/5] backup profile configuration"
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$backup = Join-Path $Profile "_backup_computeruse_$stamp"
+$backup = Join-Path $Profile "_backup_computermode_$stamp"
 if (-not $WhatIf) {
   New-Item -ItemType Directory -Path $backup -Force | Out-Null
   foreach ($f in @('package.json', 'cordis.patch.yml', 'cordis.yml')) {
@@ -97,13 +97,13 @@ if (-not $WhatIf) {
 Write-Host "      -> $backup"
 
 Write-Host "[2/5] copy plugin as a real directory"
-# A scoped name nests under node_modules/<scope>/, which is exactly where pnpm
+# An unscoped name sits directly under node_modules/, which is exactly where pnpm
 # would put it were the package installed from the registry -- so the module
 # reference in cordis.patch.yml resolves the same way for both install routes.
 $modules = Join-Path $Profile 'node_modules'
 $target  = Join-Path $modules $pluginName
 if (-not $WhatIf) {
-  New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
+  New-Item -ItemType Directory -Path $modules -Force | Out-Null
   if (Test-Path $target) {
     $item = Get-Item $target -Force
     # A junction must be removed with rmdir so its target is not followed.
@@ -125,21 +125,21 @@ Write-Host "[3/5] declare the bundle in the profile manifest"
 $manifestPath = Join-Path $Profile 'package.json'
 $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
 
-# The package was previously published under the unscoped name. A profile
-# installed before that rename still names it, and leaving the old entry behind
-# points the loader at a directory nothing deploys any more, so drop it.
-$legacyName = 'dsh-computer-use'
+# Earlier revisions shipped under other names. A profile installed back then still
+# names them, and a stale entry points the loader at a directory nothing deploys
+# any more -- so drop any of them before declaring the current name.
+$legacyNames = @('dsh-computer-use', '@evangelimo/dsh-computer-use', 'dsh-computer-mode')
 
 $deps = [ordered]@{}
 if ($manifest.dependencies) {
   foreach ($p in $manifest.dependencies.PSObject.Properties) {
-    if ($p.Name -eq $legacyName) { Write-Host "      dropping legacy dependency: $legacyName"; continue }
+    if ($legacyNames -contains $p.Name) { Write-Host "      dropping legacy dependency: $($p.Name)"; continue }
     $deps[$p.Name] = $p.Value
   }
 }
 $deps[$pluginName] = "link:$source"
 
-$bundles = @($manifest.dsh.profile.bundles | Where-Object { $_ -ne $legacyName })
+$bundles = @($manifest.dsh.profile.bundles | Where-Object { $legacyNames -notcontains $_ })
 if ($bundles -notcontains $pluginName) { $bundles += $pluginName }
 
 if (-not $WhatIf) {
@@ -184,7 +184,7 @@ if (-not $WhatIf) {
 
 Write-Host "[5/5] done"
 Write-Host ""
-Write-Host "Restart DeepSeek Harness, then pick '电脑操作模式' when starting a new task."
+Write-Host "Restart DeepSeek Harness, then pick '閻絻鍓抽幙宥勭稊濡€崇础' when starting a new task."
 Write-Host "Rollback if needed:"
 Write-Host "  Copy-Item '$backup\*' '$Profile' -Force"
 Write-Host "  Remove-Item '$target' -Recurse -Force"

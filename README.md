@@ -1,28 +1,22 @@
-# dsh-computer-use — 电脑操作模式
+﻿# dsh-computer-use 鈥?鐢佃剳鎿嶄綔妯″紡
 
-在 DeepSeek Harness 中新增第五个模式「电脑操作模式」：保留标准模式的全部能力，并加上**屏幕截图**与**鼠标键盘控制**，用于操作没有 agent 接口的软件、以及读取只存在于屏幕上的信息。
+鍦?DeepSeek Harness 涓柊澧炵浜斾釜妯″紡銆岀數鑴戞搷浣滄ā寮忋€嶏細淇濈暀鏍囧噯妯″紡鐨勫叏閮ㄨ兘鍔涳紝骞跺姞涓?*灞忓箷鎴浘**涓?*榧犳爣閿洏鎺у埗**锛岀敤浜庢搷浣滄病鏈?agent 鎺ュ彛鐨勮蒋浠躲€佷互鍙婅鍙栧彧瀛樺湪浜庡睆骞曚笂鐨勪俊鎭€?
+## 蹇€熷紑濮?
+鍓嶆彁锛歐indows + 宸插畨瑁?DeepSeek Harness 妗岄潰鐗堛€?
+**鏂瑰紡涓€锛氫粠 Harness 鐣岄潰瀹夎锛堟帹鑽愶級**
 
-## 快速开始
-
-前提：Windows + 已安装 DeepSeek Harness 桌面版。
-
-**方式一：从 Harness 界面安装（推荐）**
-
-在插件页点「添加插件」，输入包名：
-
+鍦ㄦ彃浠堕〉鐐广€屾坊鍔犳彃浠躲€嶏紝杈撳叆鍖呭悕锛?
 ```
-@evangelimo/dsh-computer-use
+dsh-computer-use-mode
 ```
 
-或直接输入仓库地址：
-
+鎴栫洿鎺ヨ緭鍏ヤ粨搴撳湴鍧€锛?
 ```
 https://github.com/EvangeliMo/dsh-computer-use
 ```
 
-安装后**重启 Harness**，新建任务时选择「电脑操作模式」。
-
-**方式二：克隆后本地安装**
+瀹夎鍚?*閲嶅惎 Harness**锛屾柊寤轰换鍔℃椂閫夋嫨銆岀數鑴戞搷浣滄ā寮忋€嶃€?
+**鏂瑰紡浜岋細鍏嬮殕鍚庢湰鍦板畨瑁?*
 
 ```powershell
 git clone https://github.com/EvangeliMo/dsh-computer-use.git
@@ -30,71 +24,50 @@ cd dsh-computer-use
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
 ```
 
-安装脚本会自动定位 profile（优先 `desktop`；机器上有多个 profile 且无 `desktop` 时会报错要求你显式指定 `-Profile <路径>`）。先用 `-WhatIf` 空运行可以看到它打算做什么而不写入任何东西。
-
-**不需要 `npm install`。** 本插件不声明任何依赖：`koffi`、`fflate`、`@deepseek-ai/dsh-tools`、`@deepseek-ai/schemastery` 都由 Harness 安装目录提供，`lib/loader.cjs` 从 `process.resourcesPath` 推导安装位置去解析它们。因此**无论从界面安装、从 npm 安装还是克隆到任意位置都能工作**，也不依赖网络。
-
-## 这个模式提供什么
-
-两个工具：
-
-| 工具 | 用途 |
+瀹夎鑴氭湰浼氳嚜鍔ㄥ畾浣?profile锛堜紭鍏?`desktop`锛涙満鍣ㄤ笂鏈夊涓?profile 涓旀棤 `desktop` 鏃朵細鎶ラ敊瑕佹眰浣犳樉寮忔寚瀹?`-Profile <璺緞>`锛夈€傚厛鐢?`-WhatIf` 绌鸿繍琛屽彲浠ョ湅鍒板畠鎵撶畻鍋氫粈涔堣€屼笉鍐欏叆浠讳綍涓滆タ銆?
+**涓嶉渶瑕?`npm install`銆?* 鏈彃浠朵笉澹版槑浠讳綍渚濊禆锛歚koffi`銆乣fflate`銆乣@deepseek-ai/dsh-tools`銆乣@deepseek-ai/schemastery` 閮界敱 Harness 瀹夎鐩綍鎻愪緵锛宍lib/loader.cjs` 浠?`process.resourcesPath` 鎺ㄥ瀹夎浣嶇疆鍘昏В鏋愬畠浠€傚洜姝?*鏃犺浠庣晫闈㈠畨瑁呫€佷粠 npm 瀹夎杩樻槸鍏嬮殕鍒颁换鎰忎綅缃兘鑳藉伐浣?*锛屼篃涓嶄緷璧栫綉缁溿€?
+## 杩欎釜妯″紡鎻愪緵浠€涔?
+涓や釜宸ュ叿锛?
+| 宸ュ叿 | 鐢ㄩ€?|
 |---|---|
-| `computer` | 单步操作。动作：`screenshot` / `screen_info` / `windows` / `focus_window` / `click` / `double_click` / `right_click` / `middle_click` / `move` / `drag` / `scroll` / `type` / `shortcut` / `key` / `cursor` / `sleep` / `waitForChange` / `waitUntilStable` |
-| `computer_batch` | 一次调用执行多步序列（每步可带 `sleep` 等界面稳定），用于「点击 → 输入 → 回车」这类机械连招 |
+| `computer` | 鍗曟鎿嶄綔銆傚姩浣滐細`screenshot` / `screen_info` / `windows` / `focus_window` / `click` / `double_click` / `right_click` / `middle_click` / `move` / `drag` / `scroll` / `type` / `shortcut` / `key` / `cursor` / `sleep` / `waitForChange` / `waitUntilStable` |
+| `computer_batch` | 涓€娆¤皟鐢ㄦ墽琛屽姝ュ簭鍒楋紙姣忔鍙甫 `sleep` 绛夌晫闈㈢ǔ瀹氾級锛岀敤浜庛€岀偣鍑?鈫?杈撳叆 鈫?鍥炶溅銆嶈繖绫绘満姊拌繛鎷?|
 
-`waitForChange` 与 `waitUntilStable` 通过持续采样屏幕来判断界面是否已稳定，避免靠猜 `sleep` 时长。
+`waitForChange` 涓?`waitUntilStable` 閫氳繃鎸佺画閲囨牱灞忓箷鏉ュ垽鏂晫闈㈡槸鍚﹀凡绋冲畾锛岄伩鍏嶉潬鐚?`sleep` 鏃堕暱銆?
+澶栧姞涓€娈电郴缁熸彁绀鸿瘝娈佃惤锛屾敞鍐屽湪 Harness 鑷繁棰勭暀鐨?`TOOL_COMPUTER_USE` 鎻掓Ы锛坥rder 3000锛夛紝璐熻矗璇存槑宸ヤ綔娴佷笌瀹夊叏杈圭晫銆?
+## 涓轰綆鍒嗚鲸鐜囪瑙夎緭鍏ヨ璁＄殑瑙傚療娴佺▼
 
-外加一段系统提示词段落，注册在 Harness 自己预留的 `TOOL_COMPUTER_USE` 插槽（order 3000），负责说明工作流与安全边界。
+杩欐槸鏈ā寮忕殑鏍稿績璁捐锛岄拡瀵瑰浘鍍忚緭鍏ュ垎杈ㄧ巼鏈夐檺鐨勬ā鍨嬶細
 
-## 为低分辨率视觉输入设计的观察流程
+**绗竴姝?鈥?鍏ㄥ眬姒傝銆?* 鍏ㄥ睆鎴浘浼氶檷閲囨牱鍒?1152 鍍忕礌锛?920脳1080 鈫?`scale: 0.6`锛夛紝骞跺湪鍥句笂**鐑у綍鍧愭爣鏍囧昂**锛堟瘡 200 灞忓箷鍍忕礌涓€鏉＄綉鏍肩嚎锛屾瘡 400 鍍忕礌甯︽暟瀛楁爣绛撅級鍜?**1鈥? 璞￠檺缂栧彿**銆傛ā鍨嬩笉闇€瑕佸仛蹇冪畻锛屽潗鏍囩洿鎺ュ啓鍦ㄥ浘閲屻€?
+**绗簩姝?鈥?灞€閮ㄥ師鐢熷垎杈ㄧ巼銆?* 鐢?`region` 鍙傛暟閲嶆柊鎴彇涓€涓皬鍖哄煙锛屽彧瑕佹渶闀胯竟涓嶈秴杩?`nativeMaxDimension`锛堥粯璁?1400锛夛紝灏变互 `scale: 1` 鍘熺敓鍒嗚鲸鐜囪繑鍥炩€斺€旀鏃跺浘鍍忓儚绱犲氨鏄睆骞曞儚绱狅紝灏忓瓧瀹屽叏鍙銆?
+**`tiles` 鍙傛暟**鍙互鎶婁竴涓緝澶у尯鍩熶竴娆″垏鎴愭渶澶?9 鍧楀師鐢熷垎杈ㄧ巼鍥撅紝鐪佹帀澶氭寰€杩斻€?
+鍧愭爣鎹㈢畻瑙勫垯鍙湁涓€涓細`灞忓箷鍧愭爣 = region 鍘熺偣 + 鍥惧儚鍧愭爣 / scale`銆傜粨鏋滈噷 `region`銆乣scale`銆乣size` 姣忔閮芥槑纭洖鎶ャ€?
+## 鍏抽敭瀹炵幇绾︽潫锛堟敼鍔ㄥ墠璇峰厛璇伙級
 
-这是本模式的核心设计，针对图像输入分辨率有限的模型：
-
-**第一步 — 全局概览。** 全屏截图会降采样到 1152 像素（1920×1080 → `scale: 0.6`），并在图上**烧录坐标标尺**（每 200 屏幕像素一条网格线，每 400 像素带数字标签）和 **1–4 象限编号**。模型不需要做心算，坐标直接写在图里。
-
-**第二步 — 局部原生分辨率。** 用 `region` 参数重新截取一个小区域，只要最长边不超过 `nativeMaxDimension`（默认 1400），就以 `scale: 1` 原生分辨率返回——此时图像像素就是屏幕像素，小字完全可读。
-
-**`tiles` 参数**可以把一个较大区域一次切成最多 9 块原生分辨率图，省掉多次往返。
-
-坐标换算规则只有一个：`屏幕坐标 = region 原点 + 图像坐标 / scale`。结果里 `region`、`scale`、`size` 每次都明确回报。
-
-## 关键实现约束（改动前请先读）
-
-1. **坐标零换算。** 实测插件宿主进程 `DPI awareness = 2`（per-monitor）、`dpi = 120`，且 `GetSystemMetrics` == `DESKTOPHORZRES` == 1920。截图、`GetCursorPos`、`SetCursorPos` 天然处于**同一个物理像素空间**，因此本插件从不做坐标缩放。唯一的缩放发生在交给模型的图像上，且该系数明确回报。**不要**引入基于 DPI 的坐标换算——那会引入本不存在的错误。
-
-2. **必须是 CommonJS。** `koffi` 与 `@deepseek-ai/dsh-tools` 都在安装包的 `app.asar` 内。只有 CommonJS 的 `require` 会经过 Electron 的 asar 感知解析器；ESM 的 bare import 会以 `ERR_MODULE_NOT_FOUND` 失败（已从部署位置实测）。同时**不能**把这些包复制进插件目录：那会产生第二份 `cordis` 实例，破坏服务身份。因此入口文件是 CJS，并通过 `lib/loader.cjs` 的安装路径感知解析器取得宿主模块。
-
-3. **PNG 的 IDAT 必须是 zlib 流。** `fflate.deflateSync` 输出的是**裸 deflate**，libpng 会以 `vipspng: libpng read error` 拒绝；而裸 deflate 用 `inflateRaw` 却能正常解开，这个组合极具误导性。必须用 `fflate.zlibSync`。此项经 A/B 对照实验定位。
-
-4. **图片经 `projectContent` 投递。** `execute` 只能返回纯 JSON，图片字节必须先异步落盘为 attachment，再由 `projectContent` 挂上 `{ type: 'image', attachment }` 块——与 `dsh-mcp-client` 相同的 seam。
-
-## 安装
+1. **鍧愭爣闆舵崲绠椼€?* 瀹炴祴鎻掍欢瀹夸富杩涚▼ `DPI awareness = 2`锛坧er-monitor锛夈€乣dpi = 120`锛屼笖 `GetSystemMetrics` == `DESKTOPHORZRES` == 1920銆傛埅鍥俱€乣GetCursorPos`銆乣SetCursorPos` 澶╃劧澶勪簬**鍚屼竴涓墿鐞嗗儚绱犵┖闂?*锛屽洜姝ゆ湰鎻掍欢浠庝笉鍋氬潗鏍囩缉鏀俱€傚敮涓€鐨勭缉鏀惧彂鐢熷湪浜ょ粰妯″瀷鐨勫浘鍍忎笂锛屼笖璇ョ郴鏁版槑纭洖鎶ャ€?*涓嶈**寮曞叆鍩轰簬 DPI 鐨勫潗鏍囨崲绠椻€斺€旈偅浼氬紩鍏ユ湰涓嶅瓨鍦ㄧ殑閿欒銆?
+2. **蹇呴』鏄?CommonJS銆?* `koffi` 涓?`@deepseek-ai/dsh-tools` 閮藉湪瀹夎鍖呯殑 `app.asar` 鍐呫€傚彧鏈?CommonJS 鐨?`require` 浼氱粡杩?Electron 鐨?asar 鎰熺煡瑙ｆ瀽鍣紱ESM 鐨?bare import 浼氫互 `ERR_MODULE_NOT_FOUND` 澶辫触锛堝凡浠庨儴缃蹭綅缃疄娴嬶級銆傚悓鏃?*涓嶈兘**鎶婅繖浜涘寘澶嶅埗杩涙彃浠剁洰褰曪細閭ｄ細浜х敓绗簩浠?`cordis` 瀹炰緥锛岀牬鍧忔湇鍔¤韩浠姐€傚洜姝ゅ叆鍙ｆ枃浠舵槸 CJS锛屽苟閫氳繃 `lib/loader.cjs` 鐨勫畨瑁呰矾寰勬劅鐭ヨВ鏋愬櫒鍙栧緱瀹夸富妯″潡銆?
+3. **PNG 鐨?IDAT 蹇呴』鏄?zlib 娴併€?* `fflate.deflateSync` 杈撳嚭鐨勬槸**瑁?deflate**锛宭ibpng 浼氫互 `vipspng: libpng read error` 鎷掔粷锛涜€岃８ deflate 鐢?`inflateRaw` 鍗磋兘姝ｅ父瑙ｅ紑锛岃繖涓粍鍚堟瀬鍏疯瀵兼€с€傚繀椤荤敤 `fflate.zlibSync`銆傛椤圭粡 A/B 瀵圭収瀹為獙瀹氫綅銆?
+4. **鍥剧墖缁?`projectContent` 鎶曢€掋€?* `execute` 鍙兘杩斿洖绾?JSON锛屽浘鐗囧瓧鑺傚繀椤诲厛寮傛钀界洏涓?attachment锛屽啀鐢?`projectContent` 鎸備笂 `{ type: 'image', attachment }` 鍧椻€斺€斾笌 `dsh-mcp-client` 鐩稿悓鐨?seam銆?
+## 瀹夎
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1 -WhatIf   # 空运行
-```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1 -WhatIf   # 绌鸿繍琛?```
 
-安装脚本会：备份 profile 配置到带时间戳的目录 → 把插件**真实复制**到 `profiles\desktop\node_modules\dsh-computer-use` → 在 profile 的 `bundles` 里追加 `dsh-computer-use`。
-
-**刻意不使用 junction**：应用的重启恢复流程（"禁用第三方插件、备份 profile 补丁、重启"）会跟随 junction 并删除其目标，此前曾因此损毁插件源码。
-
-**不修改安装目录内任何文件**，因此 Harness 升级或重装都不会冲掉本插件。
-
-### ⚠️ profile manifest 的 BOM 会直接导致启动崩溃
-
-`~/.dsh/profiles/desktop/package.json` 是模式清单，dsh-host 用裸 `JSON.parse()` 读取它。**只要文件开头有 UTF-8 BOM（`EF BB BF`），host 就在启动早期抛 `Unexpected token '\uFEFF'` 并立刻退出**，弹窗显示"应用无法启动或已意外停止"，而弹窗建议的"重新安装"**完全无效**——重装只覆盖程序目录，不碰 `~/.dsh`。
-
-本插件的 `install.ps1` 第一版踩过这个坑：它用 `Set-Content -Encoding UTF8` 回写清单，而 Windows PowerShell 5.1 下该 cmdlet **必定写入 BOM**。现已改为
-
+瀹夎鑴氭湰浼氾細澶囦唤 profile 閰嶇疆鍒板甫鏃堕棿鎴崇殑鐩綍 鈫?鎶婃彃浠?*鐪熷疄澶嶅埗**鍒?`profiles\desktop\node_modules\dsh-computer-use` 鈫?鍦?profile 鐨?`bundles` 閲岃拷鍔?`dsh-computer-use`銆?
+**鍒绘剰涓嶄娇鐢?junction**锛氬簲鐢ㄧ殑閲嶅惎鎭㈠娴佺▼锛?绂佺敤绗笁鏂规彃浠躲€佸浠?profile 琛ヤ竵銆侀噸鍚?锛変細璺熼殢 junction 骞跺垹闄ゅ叾鐩爣锛屾鍓嶆浘鍥犳鎹熸瘉鎻掍欢婧愮爜銆?
+**涓嶄慨鏀瑰畨瑁呯洰褰曞唴浠讳綍鏂囦欢**锛屽洜姝?Harness 鍗囩骇鎴栭噸瑁呴兘涓嶄細鍐叉帀鏈彃浠躲€?
+### 鈿狅笍 profile manifest 鐨?BOM 浼氱洿鎺ュ鑷村惎鍔ㄥ穿婧?
+`~/.dsh/profiles/desktop/package.json` 鏄ā寮忔竻鍗曪紝dsh-host 鐢ㄨ８ `JSON.parse()` 璇诲彇瀹冦€?*鍙鏂囦欢寮€澶存湁 UTF-8 BOM锛坄EF BB BF`锛夛紝host 灏卞湪鍚姩鏃╂湡鎶?`Unexpected token '\uFEFF'` 骞剁珛鍒婚€€鍑?*锛屽脊绐楁樉绀?搴旂敤鏃犳硶鍚姩鎴栧凡鎰忓鍋滄"锛岃€屽脊绐楀缓璁殑"閲嶆柊瀹夎"**瀹屽叏鏃犳晥**鈥斺€旈噸瑁呭彧瑕嗙洊绋嬪簭鐩綍锛屼笉纰?`~/.dsh`銆?
+鏈彃浠剁殑 `install.ps1` 绗竴鐗堣俯杩囪繖涓潙锛氬畠鐢?`Set-Content -Encoding UTF8` 鍥炲啓娓呭崟锛岃€?Windows PowerShell 5.1 涓嬭 cmdlet **蹇呭畾鍐欏叆 BOM**銆傜幇宸叉敼涓?
 ```powershell
 [System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($false)))
 ```
 
-并在写入后立即检查前三字节，发现 BOM 就抛错中止。**改动写清单的代码时，不要换回 `Set-Content` / `Out-File`。**
+骞跺湪鍐欏叆鍚庣珛鍗虫鏌ュ墠涓夊瓧鑺傦紝鍙戠幇 BOM 灏辨姏閿欎腑姝€?*鏀瑰姩鍐欐竻鍗曠殑浠ｇ爜鏃讹紝涓嶈鎹㈠洖 `Set-Content` / `Out-File`銆?*
 
-再次崩溃时的应急修复：
+鍐嶆宕╂簝鏃剁殑搴旀€ヤ慨澶嶏細
 
 ```powershell
 $p = "$env:USERPROFILE\.dsh\profiles\desktop\package.json"
@@ -102,194 +75,146 @@ $t = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8).TrimStart([
 [System.IO.File]::WriteAllText($p, $t, (New-Object System.Text.UTF8Encoding($false)))
 ```
 
-### 回滚
+### 鍥炴粴
 
 ```powershell
 Copy-Item '<backup-dir>\*' "$env:USERPROFILE\.dsh\profiles\desktop" -Force
 Remove-Item "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-computer-use" -Recurse -Force
 ```
 
-## 测试
+## 娴嬭瘯
 
-需要以宿主运行时执行，以保证模块解析与生产一致：
+闇€瑕佷互瀹夸富杩愯鏃舵墽琛岋紝浠ヤ繚璇佹ā鍧楄В鏋愪笌鐢熶骇涓€鑷达細
 
 ```powershell
-$dsh = "D:\Apps\Deepseek Harness\DeepSeek Harness.exe"   # 注意：目录名含空格
-$env:ELECTRON_RUN_AS_NODE="1"
-& $dsh scripts\test-native.cjs       # 原生层 20 项
-& $dsh scripts\test-plugin.cjs       # 插件层 21 项
-& $dsh scripts\verify-deployed.cjs   # 部署副本实载
-& $dsh scripts\check-patch-refs.cjs  # preset 引用的包名是否都存在
+$dsh = "D:\Apps\Deepseek Harness\DeepSeek Harness.exe"   # 娉ㄦ剰锛氱洰褰曞悕鍚┖鏍?$env:ELECTRON_RUN_AS_NODE="1"
+& $dsh scripts\test-native.cjs       # 鍘熺敓灞?20 椤?& $dsh scripts\test-plugin.cjs       # 鎻掍欢灞?21 椤?& $dsh scripts\verify-deployed.cjs   # 閮ㄧ讲鍓湰瀹炶浇
+& $dsh scripts\check-patch-refs.cjs  # preset 寮曠敤鐨勫寘鍚嶆槸鍚﹂兘瀛樺湪
 ```
 
-`test-native.cjs` 只移动鼠标、不点击、不输入，因此可以安全运行。测试产出的 PNG 在 `test-output/`，可用 `read_image` 查看标尺与象限标注效果。
-
-`check-patch-refs.cjs` 需要传入 asar 路径，例如：
+`test-native.cjs` 鍙Щ鍔ㄩ紶鏍囥€佷笉鐐瑰嚮銆佷笉杈撳叆锛屽洜姝ゅ彲浠ュ畨鍏ㄨ繍琛屻€傛祴璇曚骇鍑虹殑 PNG 鍦?`test-output/`锛屽彲鐢?`read_image` 鏌ョ湅鏍囧昂涓庤薄闄愭爣娉ㄦ晥鏋溿€?
+`check-patch-refs.cjs` 闇€瑕佷紶鍏?asar 璺緞锛屼緥濡傦細
 `node scripts\check-patch-refs.cjs "D:\Apps\Deepseek Harness\resources\app.asar" cordis.patch.yml`
-它可以提前发现 preset 里写错的包名——这类错误会让 bundle 加载失败。作为对照，官方 `standard.patch.yml` 跑同一检查也通过。
+瀹冨彲浠ユ彁鍓嶅彂鐜?preset 閲屽啓閿欑殑鍖呭悕鈥斺€旇繖绫婚敊璇細璁?bundle 鍔犺浇澶辫触銆備綔涓哄鐓э紝瀹樻柟 `standard.patch.yml` 璺戝悓涓€妫€鏌ヤ篃閫氳繃銆?
+## 瀹炴祴缁撹锛堝涓昏繘绋嬪唴锛岀敤甯︽棩蹇楃殑绐椾綋鎺㈤拡楠岃瘉锛?
+鐢ㄤ竴涓嚜甯︽棩蹇楃殑 WinForms 鎺㈤拡褰撻澏瀛愶紝瀹冩妸鑷繁鏀跺埌鐨勬瘡涓€娆＄偣鍑汇€佹瘡涓€涓瓧绗︺€佹瘡涓€娆℃粴杞啓鍏ユ棩蹇楁枃浠垛€斺€?鎿嶄綔鏄惁鐪熺殑鐢熸晥"闈犳枃浠惰瘉鎹紝涓嶉潬鐚溿€?
+### 鉁?杈撳叆娉ㄥ叆瀹屽叏鍙敤
 
-## 实测结论（宿主进程内，用带日志的窗体探针验证）
-
-用一个自带日志的 WinForms 探针当靶子，它把自己收到的每一次点击、每一个字符、每一次滚轮写入日志文件——"操作是否真的生效"靠文件证据，不靠猜。
-
-### ✅ 输入注入完全可用
-
-| 功能 | 证据 |
+| 鍔熻兘 | 璇佹嵁 |
 |---|---|
-| 鼠标移动 | 请求 (600,700)，回读光标落在物理 (600,700) |
-| 单击 / 右键 / 双击 | 窗体记录 `MOUSE Left @client 310,152`，与请求坐标吻合 |
-| 拖拽 | 拖标题栏，窗口从 (450,288) 移到 (322,220)，位移与请求一致 |
-| 滚轮 | `WHEEL delta=240 / -240` |
-| 英文/数字/符号 | 33 个字符全部正确 |
-| **中文 Unicode** | 电/脑/操/作/测/试/：/你/好/，/世/界 全部正确，含全角标点 |
-| 回车 / 退格 | 回车提交完整整行、退格 `U+0008` |
-| 组合键 | `ctrl+shift+a`，修饰键状态正确上报 |
-| 按键连发 | 右方向键 ×3，恰好 3 次事件 |
-| 窗口枚举 / 聚焦 | 正确读出真实标题并成功置顶 |
+| 榧犳爣绉诲姩 | 璇锋眰 (600,700)锛屽洖璇诲厜鏍囪惤鍦ㄧ墿鐞?(600,700) |
+| 鍗曞嚮 / 鍙抽敭 / 鍙屽嚮 | 绐椾綋璁板綍 `MOUSE Left @client 310,152`锛屼笌璇锋眰鍧愭爣鍚诲悎 |
+| 鎷栨嫿 | 鎷栨爣棰樻爮锛岀獥鍙ｄ粠 (450,288) 绉诲埌 (322,220)锛屼綅绉讳笌璇锋眰涓€鑷?|
+| 婊氳疆 | `WHEEL delta=240 / -240` |
+| 鑻辨枃/鏁板瓧/绗﹀彿 | 33 涓瓧绗﹀叏閮ㄦ纭?|
+| **涓枃 Unicode** | 鐢?鑴?鎿?浣?娴?璇?锛?浣?濂?锛?涓?鐣?鍏ㄩ儴姝ｇ‘锛屽惈鍏ㄨ鏍囩偣 |
+| 鍥炶溅 / 閫€鏍?| 鍥炶溅鎻愪氦瀹屾暣鏁磋銆侀€€鏍?`U+0008` |
+| 缁勫悎閿?| `ctrl+shift+a`锛屼慨楗伴敭鐘舵€佹纭笂鎶?|
+| 鎸夐敭杩炲彂 | 鍙虫柟鍚戦敭 脳3锛屾伆濂?3 娆′簨浠?|
+| 绐楀彛鏋氫妇 / 鑱氱劍 | 姝ｇ‘璇诲嚭鐪熷疄鏍囬骞舵垚鍔熺疆椤?|
 
-> ⚠️ **我此前关于输入注入的结论是错的。** 我曾报告 `SetCursorPos` 返回 `false`、事件到不了系统，并推测是令牌或策略拦截。真实原因是我**在沙箱化的 shell 里做的诊断**——受限令牌无法操作输入桌面。真实宿主进程（正常令牌）没有任何问题。**不要把沙箱内测到的 Win32 失败当作产品缺陷。**
+> 鈿狅笍 **鎴戞鍓嶅叧浜庤緭鍏ユ敞鍏ョ殑缁撹鏄敊鐨勩€?* 鎴戞浘鎶ュ憡 `SetCursorPos` 杩斿洖 `false`銆佷簨浠跺埌涓嶄簡绯荤粺锛屽苟鎺ㄦ祴鏄护鐗屾垨绛栫暐鎷︽埅銆傜湡瀹炲師鍥犳槸鎴?*鍦ㄦ矙绠卞寲鐨?shell 閲屽仛鐨勮瘖鏂?*鈥斺€斿彈闄愪护鐗屾棤娉曟搷浣滆緭鍏ユ闈€傜湡瀹炲涓昏繘绋嬶紙姝ｅ父浠ょ墝锛夋病鏈変换浣曢棶棰樸€?*涓嶈鎶婃矙绠卞唴娴嬪埌鐨?Win32 澶辫触褰撲綔浜у搧缂洪櫡銆?*
 
-### 📐 三套坐标空间（已用像素级比对确认）
+### 馃搻 涓夊鍧愭爣绌洪棿锛堝凡鐢ㄥ儚绱犵骇姣斿纭锛?
+鏈幆澧冩湁 **125% 鏄剧ず缂╂斁**锛岀晫闈㈤噷鍚屾椂瀛樺湪涓変釜鍧愭爣绯伙細
 
-本环境有 **125% 显示缩放**，界面里同时存在三个坐标系：
-
-| 坐标系 | 尺寸 | 谁在用 |
+| 鍧愭爣绯?| 灏哄 | 璋佸湪鐢?|
 |---|---|---|
-| 物理像素 | 1920×1080 | `computer` 工具、GDI 截图、`GetSystemMetrics` |
-| 逻辑像素 | 1536×864（×0.8） | 普通 32 位未声明 DPI 感知的程序 |
-| 截图图像 | 等于工具的坐标 | 1:1 对应 `computer` 的坐标 |
+| 鐗╃悊鍍忕礌 | 1920脳1080 | `computer` 宸ュ叿銆丟DI 鎴浘銆乣GetSystemMetrics` |
+| 閫昏緫鍍忕礌 | 1536脳864锛埫?.8锛?| 鏅€?32 浣嶆湭澹版槑 DPI 鎰熺煡鐨勭▼搴?|
+| 鎴浘鍥惧儚 | 绛変簬宸ュ叿鐨勫潗鏍?| 1:1 瀵瑰簲 `computer` 鐨勫潗鏍?|
 
-验证方法：把探针窗体涂成品红色，在截图里量出包围盒，再算出其真实屏幕位置，两边比对。
+楠岃瘉鏂规硶锛氭妸鎺㈤拡绐椾綋娑傛垚鍝佺孩鑹诧紝鍦ㄦ埅鍥鹃噷閲忓嚭鍖呭洿鐩掞紝鍐嶇畻鍑哄叾鐪熷疄灞忓箷浣嶇疆锛屼袱杈规瘮瀵广€?
+**缁撹锛氬湪鎴浘閲岄噺鍒扮殑鍍忕礌鐐瑰彲浠ョ洿鎺ュ綋 `click` 鍧愭爣鐢紝鏃犻渶鎹㈢畻銆?* 鍥犱负鎴浘涓庡伐鍏峰悓澶勭墿鐞嗗儚绱犵┖闂达紝鑰岃緭鍏ユ敞鍏ヤ篃鍦ㄧ墿鐞嗗儚绱犵┖闂达紙瀹夸富杩涚▼鏄?per-monitor DPI aware锛夈€傚彧鏈夊綋鎿嶄綔鐩爣鏄湭澹版槑 DPI 鎰熺煡鐨勮€佺▼搴忋€佷笖闇€瑕佹寜"瀹冭嚜宸辩殑閫昏緫鍧愭爣"涓嬪垽鏂椂锛屾墠闇€瑕?脳0.8銆?
+### 鍥惧儚濡備綍閫佽繘妯″瀷锛堟渶瀹规槗韪╅敊鐨勪竴鐜級
 
-**结论：在截图里量到的像素点可以直接当 `click` 坐标用，无需换算。** 因为截图与工具同处物理像素空间，而输入注入也在物理像素空间（宿主进程是 per-monitor DPI aware）。只有当操作目标是未声明 DPI 感知的老程序、且需要按"它自己的逻辑坐标"下判断时，才需要 ×0.8。
-
-### 图像如何送进模型（最容易踩错的一环）
-
-图像经 **`output.render`**（同步）投递，且附件引用必须作为**可枚举的普通 JSON 字段写在输出值内部**（`images` 数组，已在 output schema 里声明）。
-
-这不是风格选择，是被调度器的执行顺序强制的。`dsh-tools` 的顺序是：
-
+鍥惧儚缁?**`output.render`**锛堝悓姝ワ級鎶曢€掞紝涓旈檮浠跺紩鐢ㄥ繀椤讳綔涓?*鍙灇涓剧殑鏅€?JSON 瀛楁鍐欏湪杈撳嚭鍊煎唴閮?*锛坄images` 鏁扮粍锛屽凡鍦?output schema 閲屽０鏄庯級銆?
+杩欎笉鏄鏍奸€夋嫨锛屾槸琚皟搴﹀櫒鐨勬墽琛岄『搴忓己鍒剁殑銆俙dsh-tools` 鐨勯『搴忔槸锛?
 ```js
-const detached = snapshotToolValue(tool.name, candidate); // JSON 往返快照
-const value = deepFreeze(detached);                        // 深冻结
-rendered = tool.output.render(exec.arguments, value);      // 最后才 render
+const detached = snapshotToolValue(tool.name, candidate); // JSON 寰€杩斿揩鐓?const value = deepFreeze(detached);                        // 娣卞喕缁?rendered = tool.output.render(exec.arguments, value);      // 鏈€鍚庢墠 render
 ```
 
-**`render` 拿到的不是 `execute` 返回的那个对象，而是它的 JSON 快照的冻结副本。** 因此：
+**`render` 鎷垮埌鐨勪笉鏄?`execute` 杩斿洖鐨勯偅涓璞★紝鑰屾槸瀹冪殑 JSON 蹇収鐨勫喕缁撳壇鏈€?* 鍥犳锛?
+- 鐢?`Symbol` 灞炴€ф寕杞?鈫?蹇収鏃惰鍓ユ帀
+- 鐢?`WeakMap` 浠ヨ繑鍥炲€间负閿?鈫?閿璞″凡琚浛鎹紝鏌ヤ笉鍒?- 鐢?`projectContent`锛堟渶鍒濈殑鍋氭硶锛夆啋 璋冨害鍣ㄤ笉鏌ヨ繖鏉¤矾寰?
+涓夌鍋氭硶閮借〃鐜颁负**鍚屼竴涓瀬鍏疯瀵兼€х殑鐥囩姸**锛氭枃瀛楄鏄庢甯稿埌杈撅紙"宸叉崟鑾?1920脳1080 鍥惧儚"锛夛紝**浣嗗浘鍍忎粠鏈繘鍏ユā鍨嬩笂涓嬫枃**銆傛ā鍨嬩簬鏄細鎻忚堪涓€涓畠娌＄湅瑙佺殑灞忓箷銆?
+`read_image` 涔嬫墍浠ュ彲闈狅紝姝ｆ槸鍥犱负瀹冩妸寮曠敤鏀惧湪 `value.image` 閲屸€斺€斿彲鏋氫妇銆佸湪 schema 鍐呫€佽兘杩囧揩鐓с€?
+**鏀瑰姩姝ゅ鏃惰杩愯 `test-plugin.cjs` 鐨?`the image reference SURVIVES the dispatcher snapshot` 鐢ㄤ緥**锛屽畠澶嶅埢浜嗗揩鐓?鍐荤粨閾捐矾锛屼换浣曡蛋鏃佽矾鐨勫仛娉曢兘浼氬綋鍦哄け璐ャ€?
+### 杈撳嚭 schema 閲岀殑瀛楁涓嶄細鑷姩閫佽揪妯″瀷
 
-- 用 `Symbol` 属性挂载 → 快照时被剥掉
-- 用 `WeakMap` 以返回值为键 → 键对象已被替换，查不到
-- 用 `projectContent`（最初的做法）→ 调度器不查这条路径
-
-三种做法都表现为**同一个极具误导性的症状**：文字说明正常到达（"已捕获 1920×1080 图像"），**但图像从未进入模型上下文**。模型于是会描述一个它没看见的屏幕。
-
-`read_image` 之所以可靠，正是因为它把引用放在 `value.image` 里——可枚举、在 schema 内、能过快照。
-
-**改动此处时请运行 `test-plugin.cjs` 的 `the image reference SURVIVES the dispatcher snapshot` 用例**，它复刻了快照+冻结链路，任何走旁路的做法都会当场失败。
-
-### 输出 schema 里的字段不会自动送达模型
-
-同一个机制的另一面：**模型看到的内容完全由 `output.render` 决定。** schema 校验只保证值合法；`windows`、`steps` 这类数组即使声明了、填了值，如果 `render` 没把它们打印进文本块，模型就收不到。
-
-症状很隐蔽：agent 会知道"找到 5 个窗口"，却**说不出其中任何一个的名字**。
-
-所以凡是要给模型看的数据，都必须出现在 `render` 的输出里：
-
-| 动作 | render 中必须包含 |
+鍚屼竴涓満鍒剁殑鍙︿竴闈細**妯″瀷鐪嬪埌鐨勫唴瀹瑰畬鍏ㄧ敱 `output.render` 鍐冲畾銆?* schema 鏍￠獙鍙繚璇佸€煎悎娉曪紱`windows`銆乣steps` 杩欑被鏁扮粍鍗充娇澹版槑浜嗐€佸～浜嗗€硷紝濡傛灉 `render` 娌℃妸瀹冧滑鎵撳嵃杩涙枃鏈潡锛屾ā鍨嬪氨鏀朵笉鍒般€?
+鐥囩姸寰堥殣钄斤細agent 浼氱煡閬?鎵惧埌 5 涓獥鍙?锛屽嵈**璇翠笉鍑哄叾涓换浣曚竴涓殑鍚嶅瓧**銆?
+鎵€浠ュ嚒鏄缁欐ā鍨嬬湅鐨勬暟鎹紝閮藉繀椤诲嚭鐜板湪 `render` 鐨勮緭鍑洪噷锛?
+| 鍔ㄤ綔 | render 涓繀椤诲寘鍚?|
 |---|---|
-| `windows` | 完整列表（handle / 尺寸 / 位置 / 标题），而不只是数量 |
-| `computer_batch` | 每步结果摘要（`cursor` 坐标、`screen_info` 数值等），而不只是"完成 3 个动作" |
-| `screen_info` / `cursor` | 几何数值与指针位置 |
-| `screenshot` | 文字说明 + 由 `images` 数组转换的图像块 |
+| `windows` | 瀹屾暣鍒楄〃锛坔andle / 灏哄 / 浣嶇疆 / 鏍囬锛夛紝鑰屼笉鍙槸鏁伴噺 |
+| `computer_batch` | 姣忔缁撴灉鎽樿锛坄cursor` 鍧愭爣銆乣screen_info` 鏁板€肩瓑锛夛紝鑰屼笉鍙槸"瀹屾垚 3 涓姩浣? |
+| `screen_info` / `cursor` | 鍑犱綍鏁板€间笌鎸囬拡浣嶇疆 |
+| `screenshot` | 鏂囧瓧璇存槑 + 鐢?`images` 鏁扮粍杞崲鐨勫浘鍍忓潡 |
 
-`test-plugin.cjs` 的 `windows action RENDERS the list, not just counts it` 专门守这条：它逐条核对每个窗口的 handle 与标题都出现在渲染文本中。
+`test-plugin.cjs` 鐨?`windows action RENDERS the list, not just counts it` 涓撻棬瀹堣繖鏉★細瀹冮€愭潯鏍稿姣忎釜绐楀彛鐨?handle 涓庢爣棰橀兘鍑虹幇鍦ㄦ覆鏌撴枃鏈腑銆?
+### 绐楀彛鎴浘鐨勮竟妗嗭細蹇呴』鐢?DWM 杈规
 
-### 窗口截图的边框：必须用 DWM 边框
+`GetWindowRect` 鍖呭惈 DWM 淇濈暀鐨?*涓嶅彲瑙佽皟鏁磋竟妗?*锛堟瘡杈圭害 8px锛夛紝鎸夊畠瑁佸壀浼氬湪鍙充晶鍜屼笅鏂圭暀涓嬮粦杈广€俙DWMWA_EXTENDED_FRAME_BOUNDS` 杩斿洖鐨勬墠鏄敤鎴风湅寰楄鐨勮竟妗嗐€?
+`windows` 鎶ュ憡涓庣獥鍙ｆ埅鍥?*閮?*浣跨敤 DWM 杈规锛堢粡 `visibleBounds()`锛夛紝涓よ€呭繀椤讳竴鑷粹€斺€斿惁鍒欏潗鏍囪鏁颁細瀵逛笉涓婏紝娴嬭瘯 `window capture matches the DWM frame, not GetWindowRect` 浼氬け璐ャ€?
+### 绐楀彛鏋氫妇鐨勮繃婊よ鍒?
+`IsWindowVisible` 浼氭斁杩囧ぇ閲忓菇鐏电獥鍙ｏ細IME 闅愯棌绐楀彛锛堝悓涓€鏍囬閲嶅 4-5 娆★級銆乁WP 宸叉寕璧风獥鍙ｃ€侀浂闈㈢Н鐨勯€氱煡绐楀彛銆傝繃婊ら摼锛?
+1. `IsWindowVisible` 鈥?鍩虹鍙鎬?2. `DWMWA_CLOAKED` 鈥?DWM 鏍囪涓哄鐢ㄦ埛闅愯棌锛圲WP 鎸傝捣銆両ME 鍊欓€夌獥锛?3. `WS_EX_TOOLWINDOW` 鈥?宸ュ叿闈㈡澘绫荤獥鍙?4. 绌烘爣棰?5. **闆堕潰绉?* 鈥?`495x0` 杩欑被涓嶆槸鏈夋晥鎴浘鐩爣
+6. **绂诲睆** 鈥?瀹屽叏涓嶅湪铏氭嫙妗岄潰鑼冨洿鍐?
+娉ㄦ剰**涓嶈繃婊?* `WS_EX_NOREDIRECTIONBITMAP`锛圙PU 鍚堟垚绐楀彛锛夛細DSH 鑷繁鐨勭獥鍙ｅ氨甯﹁繖涓爣蹇楋紝杩囨护鎺夊畠浼氳 agent 鏃犳硶鏌ョ湅鑷繁鎵€鍦ㄧ殑瀹夸富绋嬪簭銆傝繖绫荤獥鍙ｄ細琚爣璁颁负 `gpu-composited` 骞跺湪鏂囧瓧閲屾彁绀?鐩存帴鎴浘鍙兘杩斿洖绌虹櫧锛屾敼鎴睆骞曞尯鍩?銆傚疄娴嬩腑 DSH 绐楀彛璧扮殑鏄睆骞曞洖閫€璺緞锛岃兘姝ｅ父鐪嬪埌鍐呭銆?
+### 鍒嗚鲸鐜囩瓥鐣ワ細涓嶅仛棰勯槻鎬ч檷閲囨牱
 
-`GetWindowRect` 包含 DWM 保留的**不可见调整边框**（每边约 8px），按它裁剪会在右侧和下方留下黑边。`DWMWA_EXTENDED_FRAME_BOUNDS` 返回的才是用户看得见的边框。
+鍥惧儚鐢?*妯″瀷鑷繁**涓嬮噰鏍凤紝鎵€浠ユ湰鎻掍欢**榛樿浠ュ睆骞曠湡瀹炲垎杈ㄧ巼浜や粯**鈥斺€?920脳1080 鐨勬闈㈠氨閫?1920脳1080 鐨勫浘锛宎gent 鑷繁鍐冲畾瑕佺湅鍝潡銆佽涓嶈灞€閮ㄦ斁澶с€?
+鏃╂湡鐗堟湰浼氫富鍔ㄦ妸鍏ㄥ睆鍘嬪埌 1152px锛坰cale 0.6锛夛紝杩欐槸鍩轰簬"妯″瀷鍥惧儚杈撳叆鍒嗚鲸鐜囦綆銆侀渶瑕佸厛缂╁皬"鐨?*閿欒鍓嶆彁**銆備唬浠锋槸涓㈠純浜嗙粏鑺傦紝鑰屾ā鍨嬫湰鏉ュ彲浠ヨ嚜宸卞喅瀹氫繚鐣欏灏戙€?
+`fullMaxDimension`锛堥粯璁?4096锛夌幇鍦ㄦ槸**瀹夊叏涓婇檺鑰岄潪鐩爣**锛屽彧鍦ㄨ櫄鎷熸闈㈠紓甯稿ぇ鏃舵墠鐢熸晥銆俙scale` 鍙傛暟浠嶅彲鐢紝浣嗙敤浜?鎴戝氨鏄兂瑕佷竴寮犲皬鍥?杩欑鏄庣‘闇€姹傘€?
+鍧愭爣鏍囧昂涓庤薄闄愭爣璁颁繚鐣欙細瀹冧滑瑙ｅ喅鐨勬槸鍙︿竴涓棶棰樷€斺€?*鍛婅瘔 agent 鏌愪釜涓滆タ鍦ㄥ摢**锛岃€屼笉鏄渷 token銆?
+### 宸茬煡闄愬埗
 
-`windows` 报告与窗口截图**都**使用 DWM 边框（经 `visibleBounds()`），两者必须一致——否则坐标读数会对不上，测试 `window capture matches the DWM frame, not GetWindowRect` 会失败。
+1. **鍓嶅彴鍛戒护鍚姩鐨?GUI 杩涚▼浼氳鍥炴敹銆?* 鐢?`Start-Process` 寮瑰嚭鐨勭獥鍙ｅ湪鍛戒护缁撴潫鍚庨殢涔嬫秷澶便€傝璁?agent 甯搁┗鎿嶄綔鏌愪釜 GUI 绋嬪簭锛屽繀椤荤敤**鍚庡彴浠诲姟**鍚姩锛屼笉鑳介殢鎵?`Start-Process`銆?2. **UAC / 瀹夊叏妗岄潰鎴笉鍒?*锛屼篃鏃犳硶鍚戞彁鏉冪獥鍙ｆ敞鍏ヨ緭鍏ワ紙UIPI锛夈€?3. **鏃犻檮浠舵湇鍔℃椂闄嶇骇**锛氭埅鍥句粛浼氳惤鐩樺苟鍦ㄦ枃瀛楅噷璇存槑鍘熷洜涓庢枃浠惰矾寰勶紝鍙敤 `read_image` 鍏滃簳璇诲彇銆?
+## 閰嶇疆椤?
+鍦?`cordis.patch.yml` 鐨?`preset-computer` 鈫?`computer-use.config` 涓嬭皟鏁达細
 
-### 窗口枚举的过滤规则
-
-`IsWindowVisible` 会放过大量幽灵窗口：IME 隐藏窗口（同一标题重复 4-5 次）、UWP 已挂起窗口、零面积的通知窗口。过滤链：
-
-1. `IsWindowVisible` — 基础可见性
-2. `DWMWA_CLOAKED` — DWM 标记为对用户隐藏（UWP 挂起、IME 候选窗）
-3. `WS_EX_TOOLWINDOW` — 工具面板类窗口
-4. 空标题
-5. **零面积** — `495x0` 这类不是有效截图目标
-6. **离屏** — 完全不在虚拟桌面范围内
-
-注意**不过滤** `WS_EX_NOREDIRECTIONBITMAP`（GPU 合成窗口）：DSH 自己的窗口就带这个标志，过滤掉它会让 agent 无法查看自己所在的宿主程序。这类窗口会被标记为 `gpu-composited` 并在文字里提示"直接截图可能返回空白，改截屏幕区域"。实测中 DSH 窗口走的是屏幕回退路径，能正常看到内容。
-
-### 分辨率策略：不做预防性降采样
-
-图像由**模型自己**下采样，所以本插件**默认以屏幕真实分辨率交付**——1920×1080 的桌面就送 1920×1080 的图，agent 自己决定要看哪块、要不要局部放大。
-
-早期版本会主动把全屏压到 1152px（scale 0.6），这是基于"模型图像输入分辨率低、需要先缩小"的**错误前提**。代价是丢弃了细节，而模型本来可以自己决定保留多少。
-
-`fullMaxDimension`（默认 4096）现在是**安全上限而非目标**，只在虚拟桌面异常大时才生效。`scale` 参数仍可用，但用于"我就是想要一张小图"这种明确需求。
-
-坐标标尺与象限标记保留：它们解决的是另一个问题——**告诉 agent 某个东西在哪**，而不是省 token。
-
-### 已知限制
-
-1. **前台命令启动的 GUI 进程会被回收。** 用 `Start-Process` 弹出的窗口在命令结束后随之消失。要让 agent 常驻操作某个 GUI 程序，必须用**后台任务**启动，不能随手 `Start-Process`。
-2. **UAC / 安全桌面截不到**，也无法向提权窗口注入输入（UIPI）。
-3. **无附件服务时降级**：截图仍会落盘并在文字里说明原因与文件路径，可用 `read_image` 兜底读取。
-
-## 配置项
-
-在 `cordis.patch.yml` 的 `preset-computer` → `computer-use.config` 下调整：
-
-| 字段 | 默认 | 含义 |
+| 瀛楁 | 榛樿 | 鍚箟 |
 |---|---|---|
-| `enabled` | `true` | 总开关 |
-| `thumbnailMaxDimension` | `1152` | 全屏概览图最长边；1920 屏对应 scale 0.6 |
-| `nativeMaxDimension` | `1400` | 区域截图超过此值才降采样 |
-| `pngLevel` | `6` | PNG deflate 级别 1–9 |
-| `maxBatchActions` | `40` | 单次 `computer_batch` 的动作上限 |
-| `outputDirectory` | `''` | 截图落盘目录；留空用系统临时目录 |
+| `enabled` | `true` | 鎬诲紑鍏?|
+| `thumbnailMaxDimension` | `1152` | 鍏ㄥ睆姒傝鍥炬渶闀胯竟锛?920 灞忓搴?scale 0.6 |
+| `nativeMaxDimension` | `1400` | 鍖哄煙鎴浘瓒呰繃姝ゅ€兼墠闄嶉噰鏍?|
+| `pngLevel` | `6` | PNG deflate 绾у埆 1鈥? |
+| `maxBatchActions` | `40` | 鍗曟 `computer_batch` 鐨勫姩浣滀笂闄?|
+| `outputDirectory` | `''` | 鎴浘钀界洏鐩綍锛涚暀绌虹敤绯荤粺涓存椂鐩綍 |
 
-## 文件结构
+## 鏂囦欢缁撴瀯
 
 ```
 dsh-computer-use/
-├── package.json          # type: commonjs（必须）
-├── cordis.patch.yml      # 挂载插件 + 声明 preset-computer
-├── install.ps1           # 安装脚本
-├── lib/
-│   ├── index.js          # 插件主体：两个工具 + 提示词段落
-│   └── loader.cjs        # 安装路径感知的模块解析（穿透 asar）
-├── src/
-│   ├── win32.cjs         # koffi 绑定 user32/gdi32/dwmapi
-│   ├── capture.cjs       # GDI 截屏
-│   └── png.cjs           # 自包含 PNG 编码器 + 标尺 + 象限
-└── scripts/
-    ├── test-native.cjs        # 原生层 20 项
-    ├── test-plugin.cjs        # 插件层 38 项
-    ├── verify-deployed.cjs    # 部署副本 vs 源码逐字节比对 + 实载
-    └── check-patch-refs.cjs   # preset 引用的包名是否都存在
+鈹溾攢鈹€ package.json          # type: commonjs锛堝繀椤伙級
+鈹溾攢鈹€ cordis.patch.yml      # 鎸傝浇鎻掍欢 + 澹版槑 preset-computer
+鈹溾攢鈹€ install.ps1           # 瀹夎鑴氭湰
+鈹溾攢鈹€ lib/
+鈹?  鈹溾攢鈹€ index.js          # 鎻掍欢涓讳綋锛氫袱涓伐鍏?+ 鎻愮ず璇嶆钀?鈹?  鈹斺攢鈹€ loader.cjs        # 瀹夎璺緞鎰熺煡鐨勬ā鍧楄В鏋愶紙绌块€?asar锛?鈹溾攢鈹€ src/
+鈹?  鈹溾攢鈹€ win32.cjs         # koffi 缁戝畾 user32/gdi32/dwmapi
+鈹?  鈹溾攢鈹€ capture.cjs       # GDI 鎴睆
+鈹?  鈹斺攢鈹€ png.cjs           # 鑷寘鍚?PNG 缂栫爜鍣?+ 鏍囧昂 + 璞￠檺
+鈹斺攢鈹€ scripts/
+    鈹溾攢鈹€ test-native.cjs        # 鍘熺敓灞?20 椤?    鈹溾攢鈹€ test-plugin.cjs        # 鎻掍欢灞?38 椤?    鈹溾攢鈹€ verify-deployed.cjs    # 閮ㄧ讲鍓湰 vs 婧愮爜閫愬瓧鑺傛瘮瀵?+ 瀹炶浇
+    鈹斺攢鈹€ check-patch-refs.cjs   # preset 寮曠敤鐨勫寘鍚嶆槸鍚﹂兘瀛樺湪
 ```
 
-## 从沙箱内推送代码时的两个坑
+## 浠庢矙绠卞唴鎺ㄩ€佷唬鐮佹椂鐨勪袱涓潙
 
-DSH 的沙箱会隔离 Windows 的 TLS 凭据存储，因此在沙箱里执行 `git push` 会遇到两个**看似网络故障、实为环境限制**的报错：
+DSH 鐨勬矙绠变細闅旂 Windows 鐨?TLS 鍑嵁瀛樺偍锛屽洜姝ゅ湪娌欑閲屾墽琛?`git push` 浼氶亣鍒颁袱涓?*鐪嬩技缃戠粶鏁呴殰銆佸疄涓虹幆澧冮檺鍒?*鐨勬姤閿欙細
 
-| 现象 | 原因 | 处理 |
+| 鐜拌薄 | 鍘熷洜 | 澶勭悊 |
 |---|---|---|
-| `curl https://github.com` 返回 `000` | schannel 拿不到凭据 | 用 OpenSSL 后端 |
-| `schannel: AcquireCredentialsHandle failed: SEC_E_NO_CREDENTIALS` | 同上 | 同上 |
+| `curl https://github.com` 杩斿洖 `000` | schannel 鎷夸笉鍒板嚟鎹?| 鐢?OpenSSL 鍚庣 |
+| `schannel: AcquireCredentialsHandle failed: SEC_E_NO_CREDENTIALS` | 鍚屼笂 | 鍚屼笂 |
 
-但**网络本身没有被封**——`http://` 明文请求正常，到 `github.com:443` 的 TCP 连接也通。只有 Windows 原生 TLS（schannel）的凭据存储不可达。Git for Windows 自带 OpenSSL 与 CA 证书包，绕开即可：
-
+浣?*缃戠粶鏈韩娌℃湁琚皝**鈥斺€擿http://` 鏄庢枃璇锋眰姝ｅ父锛屽埌 `github.com:443` 鐨?TCP 杩炴帴涔熼€氥€傚彧鏈?Windows 鍘熺敓 TLS锛坰channel锛夌殑鍑嵁瀛樺偍涓嶅彲杈俱€侴it for Windows 鑷甫 OpenSSL 涓?CA 璇佷功鍖咃紝缁曞紑鍗冲彲锛?
 ```powershell
 git -c http.sslBackend=openssl push -u origin main
 ```
 
-诊断时注意区分"连不上"和"仓库不存在"：
-- `Failed to connect` / `SEC_E_NO_CREDENTIALS` → TLS 后端问题
-- `remote: Repository not found.` → TLS 已通，只是 GitHub 上还没建仓库（认证失败会报 `authentication failed`，不是这句）
+璇婃柇鏃舵敞鎰忓尯鍒?杩炰笉涓?鍜?浠撳簱涓嶅瓨鍦?锛?- `Failed to connect` / `SEC_E_NO_CREDENTIALS` 鈫?TLS 鍚庣闂
+- `remote: Repository not found.` 鈫?TLS 宸查€氾紝鍙槸 GitHub 涓婅繕娌″缓浠撳簱锛堣璇佸け璐ヤ細鎶?`authentication failed`锛屼笉鏄繖鍙ワ級
 
-在**普通终端**里（非沙箱）通常不需要这个参数，schannel 可正常工作。
+鍦?*鏅€氱粓绔?*閲岋紙闈炴矙绠憋級閫氬父涓嶉渶瑕佽繖涓弬鏁帮紝schannel 鍙甯稿伐浣溿€?

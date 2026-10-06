@@ -1,17 +1,16 @@
-# dsh-computer-use bundle patch.
+﻿# dsh-computer-mode bundle patch.
 #
 # Declares exactly ONE row: a fifth agent preset, `computer`, which appears in
-# the session picker alongside 标准模式 / PTC 模式 / 极简模式 / 创造模式, and which
+# the session picker alongside 鏍囧噯妯″紡 / PTC 妯″紡 / 鏋佺畝妯″紡 / 鍒涢€犳ā寮? and which
 # mounts this package inside its own plugin list.
 #
-# ⚠️ Do NOT also insert a top-level row mounting this package. That was the
-# original shape and it produced a red "异常" entry on the plugin list while the
+# 鈿狅笍 Do NOT also insert a top-level row mounting this package. That was the
+# original shape and it produced a red "寮傚父" entry on the plugin list while the
 # mode worked fine:
 #
 #   * the tool registry refuses a duplicate name in one scope, throwing
 #     `tool "computer" is already registered`, so the second load fails its fiber;
-#   * the Web surface deliberately keeps the agent plane OUT of the host plane —
-#     `dsh-web-app/cordis.patch.yml` disables every `tool-*` row (tool-fs,
+#   * the Web surface deliberately keeps the agent plane OUT of the host plane 鈥?#     `dsh-web-app/cordis.patch.yml` disables every `tool-*` row (tool-fs,
 #     tool-pwsh, tool-jobs, ...) and lets each session's preset compose them
 #     instead. A host-plane row that registers agent tools is fighting that design.
 #
@@ -29,9 +28,8 @@
       config:
         id: computer
         order: 5
-        name: 电脑操作模式
-        description: 在标准模式全部能力之上，增加屏幕截图与鼠标键盘控制，用于操作没有 agent 接口的软件，并快速读取屏幕细节。
-        plugins:
+        name: 鐢佃剳鎿嶄綔妯″紡
+        description: 鍦ㄦ爣鍑嗘ā寮忓叏閮ㄨ兘鍔涗箣涓婏紝澧炲姞灞忓箷鎴浘涓庨紶鏍囬敭鐩樻帶鍒讹紝鐢ㄤ簬鎿嶄綔娌℃湁 agent 鎺ュ彛鐨勮蒋浠讹紝骞跺揩閫熻鍙栧睆骞曠粏鑺傘€?        plugins:
           # --- same persona as standard mode -------------------------------
           - id: persona
             name: '@deepseek-ai/dsh-persona'
@@ -96,7 +94,7 @@
                 name: '@deepseek-ai/dsh-plan-mode'
                 config:
                   section: |
-                    You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+                    You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement 鈥?including an answer confirming something you asked 鈥?approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
 
                     Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
 
@@ -181,13 +179,12 @@
                   maxRounds: 64
 
           # --- the capability this mode exists for -------------------------
-          # The module name is the SCOPED package name on purpose. Installing
-          # from the plugin dialog (or npm) places the package at
-          # node_modules/@evangelimo/dsh-computer-use, so an unscoped reference
-          # here would resolve to nothing and the mode would load without its
-          # tools. install.ps1 deploys to the same scoped path for the same reason.
+          # The module name must match the package name: the loader resolves the
+          # mount by module, so a stale name here silently loads the mode without
+          # its tools. Unscoped on purpose -- a plain `dsh-computer-mode` is what
+          # someone types into the plugin dialog, with no scope to remember.
           - id: computer-use
-            name: '@evangelimo/dsh-computer-use'
+            name: dsh-computer-use-mode
             config:
               enabled: true
               # Captures are delivered at the screen's real resolution: the model
