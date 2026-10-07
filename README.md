@@ -87,11 +87,48 @@ image input, ... The screen was NOT captured.
 排查顺序：
 
 1. 看到上面这条 → **换一个支持图像输入的模型**，不是插件问题
-2. 看到 `NO IMAGE WAS ATTACHED TO THIS RESULT (...)` → 附件服务未挂载，文字里已给出原因和落盘路径
-3. 看到 `image omitted to fit request image limits` → 是图像**配额**问题，与磁盘空间无关
-4. 以上都没有 → 请把工具返回的原文发出来
+2. 看到 `invalid output: value is not lossless JSON` → 见下一节（这是插件曾经的真实缺陷，已修）
+3. 看到 `NO IMAGE WAS ATTACHED TO THIS RESULT (...)` → 附件服务未挂载，文字里已给出原因和落盘路径
+4. 看到 `image omitted to fit request image limits` → 是图像**配额**问题，与磁盘空间无关
+5. 以上都没有 → 请把工具返回的原文发出来
 
 > 注意"存储空间"几乎不可能是原因：截图写入系统临时目录，且写入失败时会在结果里**明确报告**，不会表现为"看不到屏幕"。
+
+## 工具输出必须是无损 JSON
+
+工具注册表会在记录结果前用严格校验器检查它，不通过就**整个调用失败**：
+
+```
+invalid output: value is not lossless JSON
+```
+
+这个校验比 `JSON.stringify` 严格得多，它拒绝：
+
+| 被拒的值 | 原因 |
+|---|---|
+| `undefined`（作为对象属性） | `JSON.stringify` 会**丢掉**这个键，往返不一致 |
+| `NaN` / `Infinity` / `-0` | 分别序列化成 `null` / `null` / `0` |
+| `Date`、类实例 | 非纯对象原型，身份无法保持 |
+| Symbol、不可枚举的自有键 | 无法表达 |
+
+**真实事故**：`screenshot` 在某个区域**首次**截图时会执行
+
+```js
+shot.meta.changed = before === undefined ? undefined : before !== shot.meta.signature;
+```
+
+没有基准时就写入了 `changed: undefined` → 整个结果非无损 → **调用直接失败**。表现是 agent 说"我现在看不到屏幕，截屏工具报 invalid output: value is not lossless JSON"，而使用者会去怀疑磁盘或显卡。
+
+它还有个恶劣特性：**只在特定条件下触发**。同一区域第一次截图才带这个字段，所以自测容易全绿，换台机器或换个调用顺序就崩。
+
+修法是两层：
+
+1. 源头：只在有基准时才设置 `changed`
+2. **出口统一净化**：`jsonSafe()` 在 `execute` 返回前递归处理整个结果——`undefined` 属性**直接删除**（而不是变成 `null`，那会凭空造出一个调用方从未设置的值），非有限数归零，`Date` 转 ISO 字符串，其余按 JSON 规则规整
+
+第 2 层让"输出是无损 JSON"成为**结构性保证**，而不是每加一个字段都要记得遵守的纪律。
+
+`scripts/test-plugin.cjs` 里移植了注册表那个校验器（`losslessJsonProblem`），并对首次截图、重复截图、省略全部可选参数、批量、批量中途失败等场景逐一断言。**必须用移植的校验器而不是 `JSON.stringify` 来测**——后者会放过一批注册表拒绝的值，这正是这个 bug 能溜过去的原因。
 
 ## 关键实现约束（改动前请先读）
 

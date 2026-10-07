@@ -403,6 +403,166 @@ async function main() {
   });
 
   // -------------------------------------------------------------------------
+  console.log('\n[3d] lossless-JSON contract');
+
+  /**
+   * Port of the tool registry's strict walker (`walkJsonValue` in dsh-tools).
+   *
+   * Every tool result is validated with this before it is recorded, and a value
+   * that fails kills the entire call with "invalid output: value is not lossless
+   * JSON". The walker rejects more than JSON.stringify does:
+   *
+   *   - `undefined` as an object value, because JSON *drops* the key, so the
+   *     round-trip loses it -- this is what broke a real capture on a user's
+   *     machine when `meta.changed` was assigned `undefined` on the first
+   *     screenshot of an area;
+   *   - `NaN`, `Infinity` and `-0`, which stringify to null, null and 0;
+   *   - anything whose prototype is not a plain object (Date, class instances);
+   *   - symbols, and non-enumerable own keys.
+   *
+   * Checking with this rather than with `JSON.stringify` is the whole point: a
+   * stringify-based test passes on a value the registry rejects.
+   *
+   * @param value - the candidate result.
+   * @returns an error description, or null when the value is lossless JSON.
+   */
+  function losslessJsonProblem(value) {
+    const ancestors = new Set();
+    const stack = [value];
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (current === null) continue;
+      const type = typeof current;
+      if (type === 'boolean' || type === 'string') continue;
+      if (type === 'number') {
+        if (!Number.isFinite(current)) return `non-finite number ${current}`;
+        if (Object.is(current, -0)) return '-0 (stringifies to 0)';
+        continue;
+      }
+      if (type !== 'object') return `${type} value (JSON.stringify drops or mangles it)`;
+      if (ancestors.has(current)) return 'circular reference';
+      if (Array.isArray(current)) {
+        if (Object.getPrototypeOf(current) !== Array.prototype) return 'array with a non-plain prototype';
+        // A hole does not survive either.
+        for (let index = 0; index < current.length; index += 1) {
+          if (!Object.prototype.hasOwnProperty.call(current, index)) return `sparse array at index ${index}`;
+        }
+        ancestors.add(current);
+        for (const item of current) stack.push(item);
+        continue;
+      }
+      if (Object.getPrototypeOf(current) !== Object.prototype && Object.getPrototypeOf(current) !== null) {
+        return `non-plain object (${current.constructor?.name ?? 'unknown'})`;
+      }
+      for (const key of Object.getOwnPropertyNames(current)) {
+        const descriptor = Object.getOwnPropertyDescriptor(current, key);
+        if (!descriptor?.enumerable) return `non-enumerable key "${key}"`;
+      }
+      for (const key of Object.keys(current)) {
+        if (current[key] === undefined) return `property "${key}" is undefined`;
+        stack.push(current[key]);
+      }
+    }
+    return null;
+  }
+
+  check('the lossless-JSON walker itself catches the bug it exists for', () => {
+    // Guard against a walker that silently passes everything, which would make
+    // every other check in this section meaningless.
+    const cases = [
+      [{ a: undefined }, true],
+      [{ a: NaN }, true],
+      [{ a: Infinity }, true],
+      [{ a: -0 }, true],
+      [{ a: new Date() }, true],
+      [{ a: [1, , 3] }, true],
+      [{ a: { b: [1, null, 'x'] } }, false],
+      [{ a: 0, b: '', c: false, d: null }, false],
+    ];
+    for (const [sample, shouldFail] of cases) {
+      const problem = losslessJsonProblem(sample);
+      if (shouldFail && problem === null) throw new Error(`missed a bad value: ${JSON.stringify(sample)}`);
+      if (!shouldFail && problem !== null) throw new Error(`rejected a good value: ${problem}`);
+    }
+    return `${cases.length} samples classified correctly`;
+  });
+
+  await checkAsync('a real screenshot result is lossless JSON', async () => {
+    const tool = registered.find((t) => t.name === 'computer');
+    const value = await tool.execute({ action: 'screen_info' }, {});
+    const problem = losslessJsonProblem(value);
+    if (problem !== null) throw new Error(`screen_info: ${problem}`);
+    return 'screen_info survives the registry walker';
+  });
+
+  await checkAsync('the FIRST capture of an area is lossless JSON', async () => {
+    // The regression: `meta.changed` was set to `undefined` when there was no
+    // previous fingerprint, which is exactly the first capture of a region.
+    const tool = registered.find((t) => t.name === 'computer');
+    const value = await tool.execute(
+      { action: 'screenshot', region: { x: 0, y: 0, width: 140, height: 110 } },
+      {},
+    );
+    const problem = losslessJsonProblem(value);
+    if (problem !== null) throw new Error(`first capture: ${problem}`);
+    if ('changed' in value.screenshot) {
+      throw new Error('the first capture invented a `changed` field with no baseline to compare');
+    }
+    return 'no baseline -> no `changed` key, and the result is lossless';
+  });
+
+  await checkAsync('a REPEAT capture of the same area is lossless JSON', async () => {
+    const tool = registered.find((t) => t.name === 'computer');
+    const area = { x: 0, y: 0, width: 140, height: 110 };
+    await tool.execute({ action: 'screenshot', region: area }, {});
+    const value = await tool.execute({ action: 'screenshot', region: area }, {});
+    const problem = losslessJsonProblem(value);
+    if (problem !== null) throw new Error(`repeat capture: ${problem}`);
+    if (typeof value.screenshot.changed !== 'boolean') {
+      throw new Error('a repeat capture did not report whether anything changed');
+    }
+    return `repeat capture reports changed=${value.screenshot.changed}`;
+  });
+
+  await checkAsync('omitting every optional argument stays lossless JSON', async () => {
+    // Optional arguments reach the metadata as `undefined` when omitted, which is
+    // how a field like `scale` can silently become non-lossless.
+    const tool = registered.find((t) => t.name === 'computer');
+    const value = await tool.execute({ action: 'screenshot' }, {});
+    const problem = losslessJsonProblem(value);
+    if (problem !== null) throw new Error(`bare capture: ${problem}`);
+    return 'a capture with no optional arguments is lossless';
+  });
+
+  await checkAsync('a batch result is lossless JSON', async () => {
+    const tool = registered.find((t) => t.name === 'computer_batch');
+    const value = await tool.execute(
+      {
+        actions: [
+          { action: 'cursor' },
+          { action: 'screenshot', region: { x: 0, y: 0, width: 120, height: 90 } },
+          { action: 'screen_info' },
+        ],
+      },
+      {},
+    );
+    const problem = losslessJsonProblem(value);
+    if (problem !== null) throw new Error(`batch: ${problem}`);
+    return 'batch result survives the registry walker';
+  });
+
+  await checkAsync('a batch that stops on failure is lossless JSON', async () => {
+    const tool = registered.find((t) => t.name === 'computer_batch');
+    const value = await tool.execute(
+      { actions: [{ action: 'cursor' }, { action: 'click', x: 99999, y: 99999 }, { action: 'screen_info' }] },
+      {},
+    );
+    const problem = losslessJsonProblem(value);
+    if (problem !== null) throw new Error(`failed batch: ${problem}`);
+    return 'a stopped batch is lossless too';
+  });
+
+  // -------------------------------------------------------------------------
   console.log('\n[4] running real actions');
 
   const computer = registered.find((t) => t.name === 'computer');
