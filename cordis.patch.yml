@@ -1,4 +1,4 @@
-# dsh-computer-use bundle patch.
+# dsh-computer-use-mode bundle patch.
 #
 # Declares exactly ONE row: a fifth agent preset, `computer`, which appears in
 # the session picker alongside 标准模式 / PTC 模式 / 极简模式 / 创造模式, and which

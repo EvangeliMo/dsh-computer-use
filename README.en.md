@@ -19,14 +19,14 @@ dsh-computer-use-mode
 or the repository URL (this route does not need npm):
 
 ```
-https://github.com/EvangeliMo/dsh-computer-use
+https://github.com/EvangeliMo/dsh-computer-use-mode
 ```
 
 **From a clone:**
 
 ```powershell
-git clone https://github.com/EvangeliMo/dsh-computer-use.git
-cd dsh-computer-use
+git clone https://github.com/EvangeliMo/dsh-computer-use-mode.git
+cd dsh-computer-use-mode
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
 ```
 

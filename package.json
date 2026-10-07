@@ -39,11 +39,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/EvangeliMo/dsh-computer-use.git"
+    "url": "git+https://github.com/EvangeliMo/dsh-computer-use-mode.git"
   },
-  "homepage": "https://github.com/EvangeliMo/dsh-computer-use#readme",
+  "homepage": "https://github.com/EvangeliMo/dsh-computer-use-mode#readme",
   "bugs": {
-    "url": "https://github.com/EvangeliMo/dsh-computer-use/issues"
+    "url": "https://github.com/EvangeliMo/dsh-computer-use-mode/issues"
   },
   "scripts": {
     "test:native": "node scripts/test-native.cjs",

@@ -1,5 +1,5 @@
 /**
- * dsh-computer-use —GDI screen capture.
+ * dsh-computer-use-mode — GDI screen capture.
  *
  * Captures through a screen DC with `BitBlt`, then `GetDIBits` into a 32-bit
  * top-down DIB. A screen DC does not accept `SelectObject` on a bitmap the way

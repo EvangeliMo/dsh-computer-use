@@ -1,5 +1,5 @@
 /**
- * dsh-computer-use —Win32 FFI layer.
+ * dsh-computer-use-mode — Win32 FFI layer.
  *
  * The DSH plugin host is an Electron *Node-mode* child process: `require('electron')`
  * fails, so `desktopCapturer` is unreachable. It can, however, load native addons.
@@ -130,7 +130,7 @@ function load() {
     koffi = requireFromInstall('koffi', 'screen capture and input synthesis');
   } catch (error) {
     throw new Error(
-      'dsh-computer-use: cannot load `koffi`, which this plugin needs for screen capture and ' +
+      'dsh-computer-use-mode: cannot load `koffi`, which this plugin needs for screen capture and ' +
         `input synthesis. The DSH installation normally ships it as a top-level dependency. (${error.message})`,
     );
   }
@@ -145,7 +145,7 @@ function load() {
     try {
       return lib.func(signature);
     } catch (error) {
-      throw new Error(`dsh-computer-use: Win32 symbol ${name} is unavailable (${error.message})`);
+      throw new Error(`dsh-computer-use-mode: Win32 symbol ${name} is unavailable (${error.message})`);
     }
   };
 

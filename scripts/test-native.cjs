@@ -1,5 +1,5 @@
 /**
- * Native-layer smoke test for dsh-computer-use.
+ * Native-layer smoke test for dsh-computer-use-mode.
  *
  * Validates the FFI bindings, GDI capture and PNG encoder. It never moves the
  * mouse and never presses a key —input synthesis is exercised only through its
@@ -32,7 +32,7 @@ function check(label, fn) {
   }
 }
 
-console.log('dsh-computer-use native smoke test\n');
+console.log('dsh-computer-use-mode native smoke test\n');
 
 // ---------------------------------------------------------------------------
 console.log('[1] module loading (CommonJS, asar-aware)');

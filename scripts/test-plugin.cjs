@@ -1,5 +1,5 @@
 /**
- * Plugin-level smoke test for dsh-computer-use.
+ * Plugin-level smoke test for dsh-computer-use-mode.
  *
  * Loads lib/index.js with a stub Cordis context, confirms the registry accepts
  * our tool definitions, then runs real actions.
@@ -74,7 +74,7 @@ function executableSource() {
 }
 
 async function main() {
-  console.log('dsh-computer-use plugin smoke test\n');
+  console.log('dsh-computer-use-mode plugin smoke test\n');
 
   // -------------------------------------------------------------------------
   console.log('[1] module surface');

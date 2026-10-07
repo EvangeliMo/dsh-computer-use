@@ -21,7 +21,7 @@ dsh-computer-use-mode
 或直接输入仓库地址（不依赖 npm）：
 
 ```
-https://github.com/EvangeliMo/dsh-computer-use
+https://github.com/EvangeliMo/dsh-computer-use-mode
 ```
 
 安装后**重启 Harness**，新建任务时选择「电脑操作模式」。
@@ -29,8 +29,8 @@ https://github.com/EvangeliMo/dsh-computer-use
 **方式二：克隆后本地安装**
 
 ```powershell
-git clone https://github.com/EvangeliMo/dsh-computer-use.git
-cd dsh-computer-use
+git clone https://github.com/EvangeliMo/dsh-computer-use-mode.git
+cd dsh-computer-use-mode
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
 ```
 
@@ -147,7 +147,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1 -WhatIf   # 空运行
 ```
 
-安装脚本会：备份 profile 配置到带时间戳的目录 → 把插件**真实复制**到 `profiles\desktop\node_modules\dsh-computer-use` → 在 profile 的 `bundles` 里追加 `dsh-computer-use`。
+安装脚本会：备份 profile 配置到带时间戳的目录 → 把插件**真实复制**到 `profiles\desktop\node_modules\dsh-computer-use-mode` → 在 profile 的 `bundles` 里追加 `dsh-computer-use-mode`。
 
 **刻意不使用 junction**：应用的重启恢复流程（"禁用第三方插件、备份 profile 补丁、重启"）会跟随 junction 并删除其目标，此前曾因此损毁插件源码。
 
@@ -177,7 +177,7 @@ $t = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8).TrimStart([
 
 ```powershell
 Copy-Item '<backup-dir>\*' "$env:USERPROFILE\.dsh\profiles\desktop" -Force
-Remove-Item "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-computer-use" -Recurse -Force
+Remove-Item "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-computer-use-mode" -Recurse -Force
 ```
 
 ## 测试
@@ -326,7 +326,7 @@ rendered = tool.output.render(exec.arguments, value);      // 最后才 render
 ## 文件结构
 
 ```
-dsh-computer-use/
+dsh-computer-use-mode/
 ├── package.json          # type: commonjs（必须）
 ├── cordis.patch.yml      # 挂载插件 + 声明 preset-computer
 ├── install.ps1           # 安装脚本

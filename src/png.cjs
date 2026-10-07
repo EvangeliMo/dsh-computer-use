@@ -1,5 +1,5 @@
 /**
- * dsh-computer-use —minimal PNG writer.
+ * dsh-computer-use-mode — minimal PNG writer.
  *
  * Deliberately dependency-free apart from `fflate` (already a top-level
  * dependency of the DSH installation) so screenshot capture cannot break when
