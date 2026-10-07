@@ -266,7 +266,14 @@ async function main() {
     // neither can be expressed as a tool fact. The ceiling exists to stop the
     // section drifting back into a second manual, so it sits well above what the
     // policy actually needs rather than at the byte.
-    const BUDGET = 2200;
+    //
+    // Raised from 2200 to 2350 when the "one failing tool is not a failed mode"
+    // rule was added. That rule took the section to 2193 -- within the old budget,
+    // but seven characters from it, which turns every later wording change into a
+    // test failure and invites trimming the rule that matters to satisfy a number
+    // picked when the section was shorter. The ceiling still catches drift: it is
+    // well below the 2.8k of duplicated advice this check was written to remove.
+    const BUDGET = 2350;
     if (text.length > BUDGET) {
       throw new Error(
         `the policy section is ${text.length} chars, over the ${BUDGET} budget. ` +
@@ -278,6 +285,13 @@ async function main() {
       if (text.toLowerCase().includes(fact)) {
         throw new Error(`"${fact}" is a tool description fact, not a policy rule`);
       }
+    }
+    // The rule that a single failing tool must not end GUI work, and must not be
+    // routed around by editing files on disk. Stated as an assertion because the
+    // behaviour it prevents -- an agent abandoning the mode and rewriting files
+    // with a shell command instead -- is silent when the guidance goes missing.
+    if (!/not a failed mode/i.test(text) || !/shell command/i.test(text)) {
+      throw new Error('the policy no longer tells the model to keep using the interface when one tool fails');
     }
     return `${text.length} chars (budget ${BUDGET}), no restated tool facts`;
   });
