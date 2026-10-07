@@ -51,17 +51,47 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1
 
 外加一段系统提示词段落，注册在 Harness 自己预留的 `TOOL_COMPUTER_USE` 插槽（order 3000），负责说明工作流与安全边界。
 
-## 为低分辨率视觉输入设计的观察流程
+## 为视觉模型设计的观察流程
 
-这是本模式的核心设计，针对图像输入分辨率有限的模型：
+**第一步 — 全局概览。** 全屏截图以**原生分辨率**返回（1920×1080 的屏幕就返回 1920×1080 的图），并在图上**烧录坐标标尺**和 **1–4 象限编号**，模型不需要做心算，坐标直接写在图里。
 
-**第一步 — 全局概览。** 全屏截图会降采样到 1152 像素（1920×1080 → `scale: 0.6`），并在图上**烧录坐标标尺**（每 200 屏幕像素一条网格线，每 400 像素带数字标签）和 **1–4 象限编号**。模型不需要做心算，坐标直接写在图里。
+> 这里**不做任何预先降采样**。模型自己会压缩图像（例如 DeepSeek V4.1 会自动下调分辨率），提前缩小只会丢掉 agent 想看却还没看到的细节。`fullMaxDimension`（默认 4096）只是超大虚拟桌面的安全上限，在 1920×1080 上永远不会触发。
 
 **第二步 — 局部原生分辨率。** 用 `region` 参数重新截取一个小区域，只要最长边不超过 `nativeMaxDimension`（默认 1400），就以 `scale: 1` 原生分辨率返回——此时图像像素就是屏幕像素，小字完全可读。
 
 **`tiles` 参数**可以把一个较大区域一次切成最多 9 块原生分辨率图，省掉多次往返。
 
 坐标换算规则只有一个：`屏幕坐标 = region 原点 + 图像坐标 / scale`。结果里 `region`、`scale`、`size` 每次都明确回报。
+
+## 模型不支持图像输入时会怎样
+
+**这是最容易误判为"插件坏了"的情况，所以单独说明。**
+
+如果当前模型不声明图像输入能力，harness（`dsh-llm`）**不会报错**，而是在发请求前把每个图像块替换成一行文字：
+
+```
+[image omitted because this model accepts text only; attachment sha256:xxxxxxxx]
+```
+
+结果是：截图成功、PNG 落盘、附件也存好了，但 agent 只收到那行文字，于是报告"看不到屏幕"，而使用者会合理怀疑是插件、磁盘或电脑的问题。
+
+为了让这种情况**自证**而不是静默失败，`screenshot` 会在动手前先检查调用方的模型能力，不支持就直接拒绝，并且**不做无谓的截图**：
+
+```
+cannot capture the screen for model "xxx": it declares input modalities [text] and no
+image support, so any capture would be replaced with a text placeholder before it
+reached you and you would see nothing. Switch this session to a model that accepts
+image input, ... The screen was NOT captured.
+```
+
+排查顺序：
+
+1. 看到上面这条 → **换一个支持图像输入的模型**，不是插件问题
+2. 看到 `NO IMAGE WAS ATTACHED TO THIS RESULT (...)` → 附件服务未挂载，文字里已给出原因和落盘路径
+3. 看到 `image omitted to fit request image limits` → 是图像**配额**问题，与磁盘空间无关
+4. 以上都没有 → 请把工具返回的原文发出来
+
+> 注意"存储空间"几乎不可能是原因：截图写入系统临时目录，且写入失败时会在结果里**明确报告**，不会表现为"看不到屏幕"。
 
 ## 关键实现约束（改动前请先读）
 

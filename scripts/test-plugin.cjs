@@ -143,10 +143,16 @@ async function main() {
    * the plugin did not inject, exactly as the real runtime behaves.
    *
    * @param attached - the services this plugin legitimately injects.
+   * @param options - optional overrides.
+   * @param options.sink - array to collect registered tools into (default: `registered`).
+   * @param options.llm - value for the `llm` service, so a test can drive the
+   *   image-capability gate without reaching into the plugin.
    * @returns a guarded context object.
    */
-  function guardedContext(attached) {
+  function guardedContext(attached, options = {}) {
     const services = new Map(Object.entries(attached));
+    if (options.llm !== undefined) services.set('llm', options.llm);
+    const sink = options.sink ?? registered;
     const target = {
       logger: {
         info: (...a) => logs.push(['info', a.join(' ')]),
@@ -155,7 +161,7 @@ async function main() {
       },
       tools: {
         register: (tool) => {
-          registered.push(tool);
+          sink.push(tool);
           return () => {};
         },
       },
@@ -310,6 +316,90 @@ async function main() {
       }
     }
     return 'no images -> text only';
+  });
+
+  // -------------------------------------------------------------------------
+  console.log('\n[3c] image-capability gate');
+
+  /**
+   * Build a context whose `llm` service reports the given input modalities, and
+   * an execution context whose agent reports the given route.
+   *
+   * @param modalities - the model's declared input modalities, or undefined.
+   * @returns `{ctx, exec}` for passing to a tool's execute.
+   */
+  function capabilityHarness(modalities) {
+    const sink = [];
+    const gateCtx = guardedContext(
+      { tools: true },
+      {
+        sink,
+        llm: {
+          resolveModelInfo: async () =>
+            modalities === undefined ? {} : { inputModalities: modalities },
+        },
+      },
+    );
+    mod.apply(gateCtx, config);
+    const agent = { options: { provider: 'test', model: 'test-model' }, session: undefined };
+    return { tools: sink, exec: { agent } };
+  }
+
+  await checkAsync('a capture is REFUSED when the model cannot accept images', async () => {
+    const { tools, exec } = capabilityHarness(['text']);
+    const tool = tools.find((t) => t.name === 'computer');
+    let message = null;
+    try {
+      await tool.execute({ action: 'screenshot' }, exec);
+    } catch (error) {
+      message = error.message;
+    }
+    if (!message) throw new Error('a screenshot was attempted for a text-only model');
+    if (!/does not|cannot capture|no image support/i.test(message)) {
+      throw new Error(`unhelpful refusal: ${message}`);
+    }
+    // The message must name the cause and the remedy, or the user is back to guessing.
+    if (!/test-model/.test(message)) throw new Error('the refusal does not name the model');
+    if (!/image input/i.test(message)) throw new Error('the refusal does not say what is missing');
+    return message.slice(0, 80);
+  });
+
+  await checkAsync('the same call proceeds when the model accepts images', async () => {
+    const { tools, exec } = capabilityHarness(['text', 'image']);
+    const tool = tools.find((t) => t.name === 'computer');
+    const value = await tool.execute(
+      { action: 'screenshot', region: { x: 0, y: 0, width: 160, height: 120 } },
+      exec,
+    );
+    if (!Array.isArray(value.images) || value.images.length !== 1) {
+      throw new Error('an image-capable model did not get its capture');
+    }
+    return `${value.screenshot.width}x${value.screenshot.height} delivered`;
+  });
+
+  await checkAsync('an unresolvable route is tolerated, not fatal', async () => {
+    // No exec.agent at all: capability is unknown, so the capture must still work.
+    const { tools } = capabilityHarness(['text']);
+    const tool = tools.find((t) => t.name === 'computer');
+    const value = await tool.execute(
+      { action: 'screenshot', region: { x: 0, y: 0, width: 120, height: 90 } },
+      {},
+    );
+    if (!value.screenshot) throw new Error('capture was refused without a resolvable route');
+    return 'unknown route still captures';
+  });
+
+  await checkAsync('a batch containing a capture is refused up front', async () => {
+    const { tools, exec } = capabilityHarness(['text']);
+    const tool = tools.find((t) => t.name === 'computer_batch');
+    let message = null;
+    try {
+      await tool.execute({ actions: [{ action: 'cursor' }, { action: 'screenshot' }] }, exec);
+    } catch (error) {
+      message = error.message;
+    }
+    if (!message) throw new Error('a batch with a capture ran for a text-only model');
+    return 'refused before running any step';
   });
 
   // -------------------------------------------------------------------------
